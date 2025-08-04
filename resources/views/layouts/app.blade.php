@@ -22,7 +22,7 @@
             {{-- Content --}}
             <main class="flex-1 p-6">
                 @if(session('success'))
-                    <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded">
+                    <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 mb-4 rounded">
                         {{ session('success') }}
                     </div>
                 @endif

@@ -19,13 +19,20 @@ class RoleRepository extends BaseRepository
     /**
      * Get all roles with their permissions and all available permissions.
      */
-    public function getAll(): array
+    public function getAll(array $filters = []): array
     {
+        $query = $this->model->with('permissions');
+    
+        if (!empty($filters['search'])) {
+            $query->where('name', 'like', '%' . $filters['search'] . '%');
+        }
+    
         return [
-            'roles' => $this->model->with('permissions')->get(),
+            'roles' => $query->paginate(10),
             'permissions' => Permission::all(),
         ];
     }
+      
 
     /**
      * Create a new role with permissions.
@@ -35,11 +42,18 @@ class RoleRepository extends BaseRepository
         $role = $this->create([
             'name' => $data['name'],
         ]);
-
+    
         if (!empty($data['permissions'])) {
-            $role->syncPermissions($data['permissions']);
+            // Get permission names by IDs
+            $permissionNames = Permission::whereIn('id', $data['permissions'])->pluck('name')->toArray();
+    
+            // Sync permissions one by one
+            foreach ($permissionNames as $permissionName) {
+                $role->givePermissionTo($permissionName);
+            }
         }
-
+    
         return $role;
-    }
+    }    
+    
 }
