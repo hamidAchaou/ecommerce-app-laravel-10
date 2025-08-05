@@ -9,3 +9,14 @@ composer create-project "laravel/laravel:^10.0" spatieDashboard-app
 ```bash
 composer require spatie/laravel-permission
 ```
+
+🟦 4. 🧭 الموديولات الرئيسية في لوحة التحكم
+الموديول	الوصف
+Utilisateurs	إدارة المستخدمين، الأدوار، الصلاحيات
+Produits	CRUD المنتجات
+Catégories	تصنيفات المنتجات
+Commandes	إدارة الطلبات
+Clients	العملاء
+Statistiques	Dashboard للأرقام والإحصائيات
+Paiements	تتبع المدفوعات
+Paramètres	إعدادات الموقع أو المتجر

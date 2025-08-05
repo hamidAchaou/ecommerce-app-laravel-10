@@ -1,56 +1,39 @@
-    <?php
+<?php
 
-    use App\Http\Controllers\Admin\UserController;
-    use App\Http\Controllers\ProfileController;
-    use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\ProfileController;
+use Illuminate\Support\Facades\Route;
 
-    /*
-    |--------------------------------------------------------------------------
-    | Web Routes
-    |--------------------------------------------------------------------------
-    */
+/*
+|--------------------------------------------------------------------------
+| Web Routes
+|--------------------------------------------------------------------------
+*/
 
-    Route::get('/', function () {
-        return view('welcome');
-    });
+Route::get('/', function () {
+    return view('welcome');
+});
 
-    // ✅ Dashboard — accessible to all authenticated users
-    Route::middleware(['auth', 'verified'])->group(function () {
-        Route::get('/dashboard', function () {
-            return view('dashboard');
-        })->name('admin.dashboard');
-    });
+// ✅ Dashboard — accessible to all authenticated users
+Route::middleware(['auth', 'verified'])->group(function () {
+    Route::get('/dashboard', function () {
+        return view('dashboard');
+    })->name('admin.dashboard');
+});
 
-    // ✅ Profile routes (auth required)
-    Route::middleware(['auth'])->group(function () {
-        Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
-        Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
-        Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
-    });
+// ✅ Profile routes
+Route::middleware(['auth'])->group(function () {
+    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
+    Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
+    Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+});
 
-    // ✅ Admin panel — only for admin role
-    Route::middleware(['auth', 'role:admin'])->group(function () {
-        Route::get('/admin', fn() => 'Admin Panel')->name('admin.panel');
-    });
+// ✅ Seller panel
+Route::middleware(['auth', 'role:seller'])->group(function () {
+    Route::get('/seller', fn () => 'Seller Panel')->name('seller.panel');
+});
 
+// ✅ Admin routes
+require __DIR__ . '/admin.php';
 
-    Route::middleware(['auth', 'role:admin'])
-        ->prefix('admin')
-        ->name('admin.')
-        ->group(function () {
-            Route::resource('roles', \App\Http\Controllers\Admin\RoleController::class);
-            Route::resource('permissions', \App\Http\Controllers\Admin\PermissionController::class);
-            Route::resource('users', UserController::class)->names('users');
-    
-            // ✅ Add this custom route inside the group
-            Route::put('users/{user}/roles-permissions', [UserController::class, 'updateRolesPermissions'])
-                ->name('users.updateRolesPermissions');
-        });
-    
-
-    // ✅ Seller panel — only for seller role
-    Route::middleware(['auth', 'role:seller'])->group(function () {
-        Route::get('/seller', fn() => 'Seller Panel')->name('seller.panel');
-    });
-
-    require __DIR__ . '/auth.php';
+// ✅ Auth routes
+require __DIR__ . '/auth.php';
