@@ -1,8 +1,8 @@
 @php
     $menuGroups = [
         [
-            'label' => 'Gestion des Utilisateurs',
-            'icon' => 'fas fa-users',
+            'label' => 'Utilisateurs & Accès',
+            'icon' => 'fas fa-user-shield',
             'items' => [
                 [
                     'label' => 'Utilisateurs',
@@ -10,28 +10,23 @@
                     'icon' => 'fas fa-user',
                     'activePattern' => 'admin.users.*',
                 ],
-            ],
-        ],
-        [
-            'label' => 'Gestion des Rôles & Permissions',
-            'icon' => 'fas fa-lock',
-            'items' => [
                 [
                     'label' => 'Rôles',
                     'route' => 'admin.roles.index',
-                    'icon' => 'fas fa-users-cog',
+                    'icon' => 'fas fa-user-tag',
                     'activePattern' => 'admin.roles.*',
                 ],
                 [
                     'label' => 'Permissions',
                     'route' => 'admin.permissions.index',
-                    'icon' => 'fas fa-shield-alt',
+                    'icon' => 'fas fa-key',
                     'activePattern' => 'admin.permissions.*',
                 ],
             ],
         ],
     ];
 @endphp
+
 
 <aside 
     class="bg-white shadow-md w-64 hidden md:block h-screen sticky top-0" 
