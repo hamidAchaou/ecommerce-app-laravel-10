@@ -28,7 +28,7 @@ class UserController extends Controller
         $filters = $request->only('search');
 
         // Get paginated users with roles & permissions eager loaded
-        $data = $this->userRepo->getUsersWithRolesPermissionsPaginate($filters, 2);
+        $data = $this->userRepo->getUsersWithRolesPermissionsPaginate($filters, 7);
 
         // Get all roles & permissions for filtering or UI selection
         $rolesPermissions = $this->roleRepo->getAll();
