@@ -43,9 +43,15 @@
 </div>
 
 {{-- Roles --}}
-<div>
-    <label class="block font-medium text-sm text-gray-700 mb-1">Rôles</label>
-    <select name="roles[]" multiple class="w-full border border-gray-300 rounded-md p-2" size="5">
+<div class="mb-6">
+    <x-input-label for="roles" value="Rôles" />
+
+    <select 
+        name="roles[]" 
+        id="roles" 
+        multiple 
+        class="w-full mt-1 border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-indigo-500 dark:focus:ring-indigo-600 rounded-md shadow-sm"
+    >
         @foreach ($roles as $role)
             <option value="{{ $role->name }}"
                 @if(in_array($role->name, old('roles', $user ? $user->roles->pluck('name')->toArray() : []))) selected @endif>
@@ -53,12 +59,22 @@
             </option>
         @endforeach
     </select>
+
+    @error('roles')
+        <p class="text-sm text-red-600 mt-1">{{ $message }}</p>
+    @enderror
 </div>
 
 {{-- Permissions --}}
-<div>
-    <label class="block font-medium text-sm text-gray-700 mb-1">Permissions</label>
-    <select name="permissions[]" multiple class="w-full border border-gray-300 rounded-md p-2" size="5">
+<div class="mb-6">
+    <x-input-label for="permissions" value="Permissions" />
+
+    <select 
+        name="permissions[]" 
+        id="permissions" 
+        multiple 
+        class="w-full mt-1 border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-indigo-500 dark:focus:ring-indigo-600 rounded-md shadow-sm"
+    >
         @foreach ($permissions as $permission)
             <option value="{{ $permission->name }}"
                 @if(in_array($permission->name, old('permissions', $user ? $user->permissions->pluck('name')->toArray() : []))) selected @endif>
@@ -66,4 +82,9 @@
             </option>
         @endforeach
     </select>
+
+    @error('permissions')
+        <p class="text-sm text-red-600 mt-1">{{ $message }}</p>
+    @enderror
 </div>
+

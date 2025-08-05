@@ -6,21 +6,10 @@
     <div class="bg-white rounded-lg shadow-lg p-8 max-w-7xl mx-auto mt-8">
 
         <div class="flex flex-col md:flex-row justify-between items-center mb-8 gap-6">
-            <form method="GET" action="{{ route('admin.roles.index') }}" class="flex w-full md:w-auto">
-                <input 
-                    type="text" 
-                    name="search" 
-                    value="{{ request('search') }}" 
-                    placeholder="Rechercher un rôle..." 
-                    class="flex-grow border border-gray-300 rounded-l-md p-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition"
-                />
-                <button 
-                    type="submit" 
-                    class="bg-indigo-600 text-white px-5 py-3 rounded-r-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition"
-                >
-                    Rechercher
-                </button>
-            </form>
+            <x-search-form 
+            route="admin.roles.index" 
+            placeholder="Rechercher un rôle..."
+        />        
 
             <a href="{{ route('admin.roles.create') }}" 
                 class="inline-flex items-center gap-2 bg-green-600 text-white px-6 py-3 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 transition">
