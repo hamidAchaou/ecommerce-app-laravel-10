@@ -16,7 +16,10 @@
         "vite": "^5.0.0"
     },
     "dependencies": {
+        "@alpinejs/collapse": "^3.14.9",
         "@fortawesome/fontawesome-free": "^7.0.0",
-        "sweetalert2": "^11.22.2"
+        "choices.js": "^11.1.0",
+        "sweetalert2": "^11.22.2",
+        "tom-select": "^2.4.3"
     }
 }
