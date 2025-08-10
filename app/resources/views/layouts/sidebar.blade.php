@@ -1,5 +1,4 @@
 <?php
-
 $menuGroups = [
     [
         'label' => 'General',
@@ -22,6 +21,12 @@ $menuGroups = [
                 'route' => 'admin.products.index',
                 'icon' => 'fas fa-box',
                 'active' => request()->routeIs('admin.products.*'),
+            ],
+            [
+                'label' => 'Categories',
+                'route' => 'admin.categories.index',
+                'icon' => 'fas fa-folder-open',
+                'active' => request()->routeIs('admin.categories.*'),
             ],
         ],
     ],

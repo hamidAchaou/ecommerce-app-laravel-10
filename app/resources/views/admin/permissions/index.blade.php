@@ -11,12 +11,10 @@
                 placeholder="Rechercher une permission..." 
                 class="flex w-full md:w-auto"
             />
-        
-            <a href="{{ route('admin.permissions.create') }}"
-                class="inline-flex items-center gap-2 bg-green-600 text-white px-6 py-3 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 transition">
-                <i class="fas fa-plus"></i>
+
+            <x-button.primary-button href="{{ route('admin.permissions.create') }}" icon="fas fa-plus" color="green">
                 Nouvelle Permission
-            </a>
+            </x-button.primary-button>    
         </div>
 
         <div class="overflow-x-auto rounded-lg border border-gray-200 shadow-sm">

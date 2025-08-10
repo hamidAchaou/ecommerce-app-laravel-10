@@ -12,7 +12,7 @@ return new class extends Migration
             $table->id();
             $table->string('name');
             $table->unsignedBigInteger('parent_id')->nullable();
-            $table->enum('type', ['product', 'city', 'country', 'payment'])->default('product');
+            $table->string('type')->nullable()->default('product');
             $table->timestamps();
 
             $table->foreign('parent_id')->references('id')->on('categories')->onDelete('set null');

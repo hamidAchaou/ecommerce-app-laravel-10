@@ -12,12 +12,10 @@
                 placeholder="Rechercher un utilisateur..." 
                 class="w-full md:w-auto"
             />
-            
-            <a href="{{ route('admin.users.create') }}"
-                class="inline-flex items-center gap-2 px-5 py-3 bg-green-600 text-white rounded-md hover:bg-green-700 transition focus:outline-none focus:ring-2 focus:ring-green-500">
-                <i class="fas fa-user-plus"></i>
+
+            <x-button.primary-button href="{{ route('admin.users.create') }}" icon="fas fa-plus" color="green">
                 Ajouter un utilisateur
-            </a>
+            </x-button.primary-button>
         </div>
 
         {{-- 📋 Users Table --}}
