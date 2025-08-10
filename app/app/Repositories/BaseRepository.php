@@ -70,18 +70,23 @@ abstract class BaseRepository
     /**
      * Find a record by ID or fail.
      */
-    public function find(mixed $id): Model
+    public function find(mixed $id, array $with = []): ?Model
     {
-        return $this->model->findOrFail($id);
+        $query = $this->model->newQuery();
+    
+        if (!empty($with)) {
+            $query->with($with);
+        }
+    
+        return $query->find($id);
     }
+    
 
-    /**
-     * Create a new record.
-     */
-    public function create(array $data): Model
+    public function create(array $data)
     {
-        return $this->model->create($data);
-    }
+        $record = $this->model->create($data);
+        return $record->fresh();
+    }    
 
     /**
      * Update a record by ID.

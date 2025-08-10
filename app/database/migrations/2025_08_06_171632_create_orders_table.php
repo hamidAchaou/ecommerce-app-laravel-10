@@ -9,11 +9,11 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('orders', function (Blueprint $table) {
-            $table->uuid('id')->primary();
-            $table->uuid('client_id');
+            $table->id();
+            $table->integer('client_id');
             $table->enum('status', ['pending', 'paid', 'shipped', 'completed', 'cancelled'])->default('pending');
             $table->decimal('total_amount', 10, 2);
-            $table->uuid('payment_id');
+            $table->integer('payment_id');
             $table->timestamps();
 
             $table->foreign('client_id')->references('id')->on('clients')->onDelete('cascade');

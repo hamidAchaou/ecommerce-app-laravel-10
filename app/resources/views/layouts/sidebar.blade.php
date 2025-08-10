@@ -1,31 +1,57 @@
-@php
-    $menuGroups = [
-        [
-            'label' => 'Utilisateurs & Accès',
-            'icon' => 'fas fa-user-shield',
-            'items' => [
-                [
-                    'label' => 'Utilisateurs',
-                    'route' => 'admin.users.index',
-                    'icon' => 'fas fa-user',
-                    'active' => request()->routeIs('admin.users.*'),
-                ],
-                [
-                    'label' => 'Rôles',
-                    'route' => 'admin.roles.index',
-                    'icon' => 'fas fa-user-tag',
-                    'active' => request()->routeIs('admin.roles.*'),
-                ],
-                [
-                    'label' => 'Permissions',
-                    'route' => 'admin.permissions.index',
-                    'icon' => 'fas fa-key',
-                    'active' => request()->routeIs('admin.permissions.*'),
-                ],
+<?php
+
+$menuGroups = [
+    [
+        'label' => 'General',
+        'icon' => 'fas fa-home',
+        'items' => [
+            [
+                'label' => 'Dashboard',
+                'route' => 'admin.dashboard',
+                'icon' => 'fas fa-tachometer-alt',
+                'active' => request()->routeIs('admin.dashboard'),
             ],
         ],
-    ];
-@endphp
+    ],
+    [
+        'label' => 'Catalog',
+        'icon' => 'fas fa-shopping-bag',
+        'items' => [
+            [
+                'label' => 'Products',
+                'route' => 'admin.products.index',
+                'icon' => 'fas fa-box',
+                'active' => request()->routeIs('admin.products.*'),
+            ],
+        ],
+    ],
+    [
+        'label' => 'Utilisateurs & Accès',
+        'icon' => 'fas fa-user-shield',
+        'items' => [
+            [
+                'label' => 'Utilisateurs',
+                'route' => 'admin.users.index',
+                'icon' => 'fas fa-user',
+                'active' => request()->routeIs('admin.users.*'),
+            ],
+            [
+                'label' => 'Rôles',
+                'route' => 'admin.roles.index',
+                'icon' => 'fas fa-user-tag',
+                'active' => request()->routeIs('admin.roles.*'),
+            ],
+            [
+                'label' => 'Permissions',
+                'route' => 'admin.permissions.index',
+                'icon' => 'fas fa-key',
+                'active' => request()->routeIs('admin.permissions.*'),
+            ],
+        ],
+    ],
+];
+
+?>
 
 <aside
     class="bg-white shadow-md w-64 hidden md:block h-screen sticky top-0"
@@ -88,6 +114,5 @@
             </ul>
         </div>
     @endforeach
-    
     </nav>
 </aside>

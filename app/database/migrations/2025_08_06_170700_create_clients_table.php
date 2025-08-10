@@ -9,18 +9,19 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('clients', function (Blueprint $table) {
-            $table->uuid('id')->primary();
-            $table->uuid('user_id');
+            $table->id();
+            $table->unsignedBigInteger('user_id'); // match users.id
             $table->string('phone');
             $table->string('address');
             $table->unsignedInteger('city_id');
             $table->unsignedInteger('country_id');
             $table->timestamps();
-
+        
             $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade');
             $table->foreign('city_id')->references('id')->on('cities')->onDelete('restrict');
             $table->foreign('country_id')->references('id')->on('countries')->onDelete('restrict');
         });
+        
     }
 
     public function down(): void

@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Admin\PermissionController;
+use App\Http\Controllers\Admin\ProductController;
 
 /*
 |--------------------------------------------------------------------------
@@ -17,10 +18,15 @@ Route::middleware(['auth', 'role:admin'])
     ->name('admin.')
     ->group(function () {
         Route::get('/', fn () => 'Admin Panel')->name('panel');
+        
+        Route::get('/dashboard', function () {
+            return view('dashboard');
+        })->name('dashboard');
 
         Route::resource('roles', RoleController::class);
         Route::resource('permissions', PermissionController::class);
         Route::resource('users', UserController::class)->names('users');
+        Route::resource('products', ProductController::class);
 
         Route::put('users/{user}/roles-permissions', [UserController::class, 'updateRolesPermissions'])
             ->name('users.updateRolesPermissions');

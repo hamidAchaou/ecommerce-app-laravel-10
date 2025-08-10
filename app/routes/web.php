@@ -13,13 +13,6 @@ Route::get('/', function () {
     return view('welcome');
 });
 
-// ✅ Dashboard — accessible to all authenticated users
-Route::middleware(['auth', 'verified'])->group(function () {
-    Route::get('/dashboard', function () {
-        return view('dashboard');
-    })->name('admin.dashboard');
-});
-
 // ✅ Profile routes
 Route::middleware(['auth'])->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');

@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class Cart extends Model
 {
     protected $primaryKey = 'id';
-    public $incrementing = false;
+    // public $incrementing = false;
     protected $keyType = 'string';
 
     protected $fillable = [
