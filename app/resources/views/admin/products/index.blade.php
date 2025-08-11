@@ -4,12 +4,22 @@
 
 @section('content')
     <div class="bg-white rounded-lg shadow-lg p-8 max-w-7xl mx-auto mt-8">
-        <div class="flex flex-col md:flex-row justify-between items-center mb-8 gap-6">
+        <div class="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
             <x-search-form route="admin.products.index" placeholder="Search products by title..." />
 
-            <x-button.primary-button href="{{ route('admin.products.create') }}" icon="fas fa-plus" color="green">
-                Add Product
-            </x-button.primary-button>                      
+            <div class="flex flex-wrap gap-3">
+                <x-button.primary-button href="{{ route('admin.products.import.form') }}" icon="fas fa-file-import" color="blue">
+                    Import Products
+                </x-button.primary-button>
+
+                <x-button.primary-button href="{{ route('admin.products.export') }}" icon="fas fa-file-export" color="gray">
+                    Export Products
+                </x-button.primary-button>
+
+                <x-button.primary-button href="{{ route('admin.products.create') }}" icon="fas fa-plus" color="green">
+                    Add Product
+                </x-button.primary-button>
+            </div>
         </div>
 
         <div class="overflow-x-auto rounded-lg border border-gray-200 shadow-sm">

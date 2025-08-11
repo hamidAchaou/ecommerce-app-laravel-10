@@ -7,7 +7,7 @@ use App\Http\Requests\StoreProductRequest;
 use App\Http\Requests\UpdateProductRequest;
 use App\Repositories\admin\ProductRepository;
 use App\Models\Category;
-use App\Services\Contracts\ProductImageServiceInterface;
+use App\Services\Admin\ProductService;
 use App\Services\ProductImageService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -18,13 +18,15 @@ class ProductController extends Controller
 {
     protected ProductRepository $productRepository;
     protected ProductImageService $productImageService;
-
+    protected $ProductService;
     public function __construct(
         ProductRepository $productRepository,
-        ProductImageService $productImageService
+        ProductImageService $productImageService,
+        ProductService $ProductService
     ) {
         $this->productRepository = $productRepository;
         $this->productImageService = $productImageService;
+        $this->ProductService = $ProductService;
     }
 
     public function index(Request $request)
@@ -53,12 +55,12 @@ class ProductController extends Controller
         if (!$product) {
             abort(404, 'Product not found.');
         }
-    
+
         return view('admin.products.show', [
             'product' => $product
         ]);
     }
-    
+
 
     public function store(StoreProductRequest $request)
     {
@@ -149,5 +151,26 @@ class ProductController extends Controller
             ]);
             return back()->with('error', 'Failed to delete product.');
         }
+    }
+
+    public function importForm()
+    {
+        return view('admin.products.import'); // صمم هذه الصفحة مع نموذج رفع الملف
+    }
+
+    public function import(Request $request)
+    {
+        $request->validate([
+            'file' => 'required|file|mimes:xlsx,csv'
+        ]);
+
+        $this->ProductService->import($request->file('file'));
+
+        return redirect()->back()->with('success', 'Products imported successfully.');
+    }
+
+    public function export()
+    {
+        return $this->ProductService->export();
     }
 }
