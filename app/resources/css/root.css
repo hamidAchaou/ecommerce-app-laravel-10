@@ -1,0 +1,218 @@
+:root {
+  /* Color palette */
+  --color-primary: 239 68 68; /* red-500 */
+  --color-primary-light: 254 226 226; /* red-50 */
+  --color-primary-dark: 220 38 38; /* red-700 */
+  --color-secondary: 17 24 39; /* gray-900 */
+  --color-accent: 249 115 22; /* orange-500 */
+  --color-text: 17 24 39; /* gray-900 */
+  --color-text-light: 75 85 99; /* gray-600 */
+  --color-background: 249 250 251; /* gray-50 */
+  --color-background-dark: 17 24 39; /* gray-900 */
+  --color-border: 229 231 235; /* gray-200 */
+}
+
+/* Base styles */
+@layer base {
+  html {
+    @apply scroll-smooth;
+  }
+
+  body {
+    @apply bg-gray-50 text-gray-900 antialiased min-h-screen;
+    font-family: 'Figtree', system-ui, -apple-system, sans-serif;
+    line-height: 1.5;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* Typography */
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-bold leading-tight text-gray-900;
+  }
+
+  h1 {
+    @apply text-4xl sm:text-5xl md:text-6xl;
+  }
+
+  h2 {
+    @apply text-3xl sm:text-4xl;
+  }
+
+  h3 {
+    @apply text-2xl sm:text-3xl;
+  }
+
+  h4 {
+    @apply text-xl sm:text-2xl;
+  }
+
+  p {
+    @apply text-gray-600 leading-relaxed;
+  }
+
+  /* Links */
+  a {
+    @apply text-red-600 hover:text-red-700 transition-colors duration-200;
+  }
+
+  /* Buttons */
+  .btn {
+    @apply inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm transition-all duration-200;
+  }
+
+  .btn-primary {
+    @apply bg-red-600 text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500;
+  }
+
+  .btn-secondary {
+    @apply bg-white text-red-700 border border-red-300 hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500;
+  }
+
+  /* Forms */
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  input[type="number"],
+  input[type="tel"],
+  input[type="url"],
+  input[type="search"],
+  input[type="date"],
+  input[type="time"],
+  input[type="datetime-local"],
+  input[type="month"],
+  input[type="week"],
+  input[type="file"],
+  input[type="color"],
+  select,
+  textarea {
+    @apply block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 transition duration-150 ease-in-out;
+  }
+
+  /* Cards */
+  .card {
+    @apply bg-white rounded-lg shadow-sm overflow-hidden transition-all duration-300 hover:shadow-md;
+  }
+
+  /* Product card */
+  .product-card {
+    @apply card group relative;
+  }
+
+  /* Utility classes */
+  .container {
+    @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
+  }
+
+  .section {
+    @apply py-12;
+  }
+
+  .section-title {
+    @apply text-center text-3xl font-extrabold tracking-tight text-gray-900 sm:text-4xl mb-8;
+  }
+
+  /* Animations */
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  .animate-fadeIn {
+    animation: fadeIn 0.3s ease-in-out;
+  }
+}
+
+/* Components */
+@layer components {
+  /* Navbar */
+  .navbar {
+    @apply bg-white shadow-sm;
+  }
+
+  .navbar-link {
+    @apply text-gray-500 hover:text-gray-700 px-3 py-2 text-sm font-medium;
+  }
+
+  .navbar-link-active {
+    @apply text-red-600 border-b-2 border-red-500;
+  }
+
+  /* Hero section */
+  .hero {
+    @apply relative bg-white overflow-hidden;
+  }
+
+  /* Product grid */
+  .product-grid {
+    @apply grid grid-cols-1 gap-y-10 gap-x-6 sm:grid-cols-2 lg:grid-cols-4 xl:gap-x-8;
+  }
+
+  /* Footer */
+  .footer {
+    @apply bg-white;
+  }
+
+  .footer-link {
+    @apply text-gray-500 hover:text-gray-900;
+  }
+}
+
+/* Utilities */
+@layer utilities {
+  /* Text colors */
+  .text-primary {
+    @apply text-red-600;
+  }
+
+  .text-secondary {
+    @apply text-gray-900;
+  }
+
+  .text-muted {
+    @apply text-gray-500;
+  }
+
+  /* Background colors */
+  .bg-primary {
+    @apply bg-red-600;
+  }
+
+  .bg-secondary {
+    @apply bg-gray-900;
+  }
+
+  .bg-muted {
+    @apply bg-gray-50;
+  }
+
+  /* Border colors */
+  .border-primary {
+    @apply border-red-600;
+  }
+
+  .border-secondary {
+    @apply border-gray-900;
+  }
+
+  .border-muted {
+    @apply border-gray-200;
+  }
+
+  /* Aspect ratios */
+  .aspect-product {
+    aspect-ratio: 1/1;
+  }
+
+  /* Smooth transitions */
+  .transition-slow {
+    transition-duration: 400ms;
+  }
+
+  .transition-medium {
+    transition-duration: 250ms;
+  }
+
+  .transition-fast {
+    transition-duration: 150ms;
+  }
+}
