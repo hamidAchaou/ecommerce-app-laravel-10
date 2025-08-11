@@ -72,7 +72,6 @@ class ProductController extends Controller
         try {
             $productData = $request->except('images');
             $product = $this->productRepository->create($productData);
-            // dd($product);
 
             if (!$product) {
                 throw new Exception('Failed to create product.');
@@ -95,6 +94,19 @@ class ProductController extends Controller
             return back()->with('error', 'An unexpected error occurred. Please try again.')->withInput();
         }
     }
+
+    public function edit(string $id)
+    {
+        $product = $this->productRepository->find($id, ['category', 'images']);
+        if (!$product) {
+            abort(404, 'Product not found.');
+        }
+
+        $categories = Category::where('type', 'product')->get();
+
+        return view('admin.products.edit', compact('product', 'categories'));
+    }
+
 
     public function update(UpdateProductRequest $request, string $id)
     {
