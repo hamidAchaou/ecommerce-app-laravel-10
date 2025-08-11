@@ -6,6 +6,7 @@ use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Admin\PermissionController;
 use App\Http\Controllers\Admin\ProductController;
 use App\Http\Controllers\Admin\CategoryController;
+use App\Http\Controllers\Admin\OrderController;
 
 /*
 |--------------------------------------------------------------------------
@@ -27,14 +28,16 @@ Route::middleware(['auth', 'role:admin'])
         Route::resource('roles', RoleController::class);
         Route::resource('permissions', PermissionController::class);
         Route::resource('users', UserController::class)->names('users');
+        
         Route::resource('products', ProductController::class);
-        // Route::patch('products/{product}/toggle-status', [ProductController::class, 'toggleStatus'])->name('products.toggleStatus');
         Route::get('products/import', [ProductController::class, 'importForm'])->name('products.import.form');
         Route::post('products/import', [ProductController::class, 'import'])->name('products.import');
         Route::get('products/export', [ProductController::class, 'export'])->name('products.export');
-        
-        // Route::put('products/{product}/stock', [ProductController::class, 'updateStock'])->name('products.updateStock');
+
         Route::resource('categories', CategoryController::class);
+
+        // ✅ Commandes (Orders)
+        Route::resource('orders', OrderController::class);
 
         Route::put('users/{user}/roles-permissions', [UserController::class, 'updateRolesPermissions'])
             ->name('users.updateRolesPermissions');
