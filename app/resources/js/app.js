@@ -4,6 +4,7 @@ import collapse from "@alpinejs/collapse";
 import Swal from "sweetalert2";
 import { confirmDelete } from "./helpers/confirmDelete";
 import Choices from "choices.js";
+import Chart from 'chart.js/auto';
 
 // ==================== Alpine ====================
 Alpine.plugin(collapse);
@@ -72,3 +73,6 @@ window.deselectAll = function (selectId) {
 
 // ==================== Run on Page Load ====================
 window.addEventListener("load", window.initChoices);
+
+// ================ Chart.js ====================
+window.Chart = Chart;

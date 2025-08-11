@@ -2,42 +2,54 @@
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
 
 <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>@yield('title', config('app.name'))</title>
-    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <meta name="csrf-token" content="{{ csrf_token() }}" />
+
+    {{-- Vite assets --}}
     @vite(['resources/css/app.css', 'resources/js/app.js'])
+
+    {{-- Font Awesome --}}
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css"
+        integrity="sha512-..." crossorigin="anonymous" referrerpolicy="no-referrer" />
 </head>
 
 <body class="bg-gray-100 font-sans antialiased">
 
-    <div class="min-h-screen flex flex-col md:flex-row">
-        {{-- Sidebar visible only if user is authenticated --}}
-        @auth
-            @include('layouts.sidebar')
-        @endauth
-
-        <div class="flex-1 flex flex-col">
-            {{-- Navbar --}}
+    @auth
+        @if (auth()->user()->hasRole('admin'))
+            {{-- Spatie role check --}}
             @include('layouts.navbar')
-
-            {{-- Content --}}
-            <main class="flex-1 p-6">
-                @if (session('success'))
-                    <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 mb-4 rounded">
-                        <i class="fas fa-check-circle mr-2"></i>{{ session('success') }}
-                    </div>
-                @endif
-
-                @hasSection('header')
-                    <h1 class="text-2xl font-semibold mb-4">@yield('header')</h1>
-                @endif
-
+            <div class="flex min-h-screen">
+                @include('layouts.sidebar')
+                <main class="flex-1 p-6">
+                    @yield('content')
+                </main>
+            </div>
+        @else
+            @include('layouts.navigation')
+            <main class="p-6 max-w-7xl mx-auto">
                 @yield('content')
             </main>
-        </div>
-    </div>
+        @endif
+    @else
+        @include('layouts.navigation')
+        <main class="p-6 max-w-7xl mx-auto">
+            @yield('content')
+        </main>
+    @endauth
 
+    {{-- Flash Messages --}}
+    @if (session('success'))
+        <div class="fixed top-4 right-4 bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded shadow"
+            role="alert">
+            <i class="fas fa-check-circle mr-2"></i>
+            {{ session('success') }}
+        </div>
+    @endif
+
+    @stack('scripts')
 </body>
 
 </html>
