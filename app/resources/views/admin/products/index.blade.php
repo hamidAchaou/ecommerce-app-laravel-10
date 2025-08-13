@@ -8,7 +8,7 @@
             <x-search-form route="admin.products.index" placeholder="Search products by title..." />
 
             <div class="flex flex-wrap gap-3">
-                <x-button.primary-button href="{{ route('admin.products.import.form') }}" icon="fas fa-file-import" color="blue">
+                <x-button.primary-button href="{{ route('admin.products.import') }}" icon="fas fa-file-import" color="blue">
                     Import Products
                 </x-button.primary-button>
 

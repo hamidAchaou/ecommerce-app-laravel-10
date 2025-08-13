@@ -7,14 +7,8 @@ use App\Http\Controllers\Admin\PermissionController;
 use App\Http\Controllers\Admin\ProductController;
 use App\Http\Controllers\Admin\CategoryController;
 use App\Http\Controllers\Admin\OrderController;
+use App\Http\Controllers\Admin\ProductImageController;
 use App\Http\Controllers\DashboardController;
-
-/*
-|--------------------------------------------------------------------------
-| Admin Routes
-|--------------------------------------------------------------------------
-| These routes are accessible only to authenticated users with 'admin' role.
-*/
 
 Route::middleware(['auth', 'role:admin'])
     ->prefix('admin')
@@ -28,19 +22,20 @@ Route::middleware(['auth', 'role:admin'])
         Route::resource('permissions', PermissionController::class);
         Route::resource('users', UserController::class)->names('users');
 
+        // Image management routes - MUST come BEFORE resource routes
+        Route::delete('products/{product}/images/{image}', [ProductImageController::class, 'destroy'])
+        ->name('products.images.destroy');
+        Route::post('products/{product}/images/{image}/set-main', [ProductImageController::class, 'setMain'])
+            ->name('products.images.setMain');
+        
+        // Product routes
         Route::resource('products', ProductController::class);
-        Route::get('products/import', [ProductController::class, 'importForm'])->name('products.import.form');
         Route::post('products/import', [ProductController::class, 'import'])->name('products.import');
         Route::get('products/export', [ProductController::class, 'export'])->name('products.export');
 
         Route::resource('categories', CategoryController::class);
-
-        // ✅ Commandes (Orders)
         Route::resource('orders', OrderController::class);
-
-        // ✅ Gestion des orders
-        Route::resource('orders', OrderController::class);
-        // ✅ Pending orders route
+        
         Route::get('orders/pending', [OrderController::class, 'pending'])
             ->name('orders.pending');
 

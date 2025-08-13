@@ -6,12 +6,11 @@ use Illuminate\Database\Eloquent\Model;
 
 class Product extends Model
 {
-    protected $primaryKey = 'id';
-    // public $incrementing = false;
-    protected $keyType = 'string';
-
+    // Only set keyType to 'string' if your IDs are actually strings (UUIDs, etc.)
+    // If they're auto-incrementing integers, remove this line or set to 'int'
+    protected $keyType = 'int'; // Change this from 'string' to 'int' if using integer IDs
+    
     protected $fillable = [
-        'id',
         'title',
         'description',
         'price',
