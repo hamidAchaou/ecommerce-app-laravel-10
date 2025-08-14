@@ -1,7 +1,8 @@
 <?php
 
-namespace App\Repositories;
+namespace App\Repositories\admin;
 
+use App\Repositories\BaseRepository;
 use Illuminate\Http\Request;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\Models\Permission;

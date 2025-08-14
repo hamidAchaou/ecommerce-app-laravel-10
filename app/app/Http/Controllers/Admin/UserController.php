@@ -3,8 +3,8 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Repositories\RoleRepository;
-use App\Repositories\UserRepository;
+use App\Repositories\admin\RoleRepository;
+use App\Repositories\admin\UserRepository;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rules\Password;

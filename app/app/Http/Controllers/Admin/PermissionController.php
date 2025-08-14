@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Repositories\PermissionRepository;
+use App\Repositories\admin\PermissionRepository;
 use Illuminate\Http\Request;
 
 class PermissionController extends Controller

@@ -1,7 +1,8 @@
 <?php
 
-namespace App\Repositories;
+namespace App\Repositories\admin;
 
+use App\Repositories\BaseRepository;
 use Spatie\Permission\Models\Permission;
 
 class PermissionRepository extends BaseRepository

@@ -1,8 +1,9 @@
 <?php
 
-namespace App\Repositories;
+namespace App\Repositories\admin;
 
 use App\Models\User;
+use App\Repositories\BaseRepository;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\Models\Permission;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
