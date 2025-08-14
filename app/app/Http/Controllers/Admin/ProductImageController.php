@@ -8,91 +8,98 @@ use App\Models\ProductImage;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB;
 
 class ProductImageController extends Controller
 {
     public function destroy($productId, $imageId)
     {
         try {
+            // Start database transaction for data consistency
+            DB::beginTransaction();
+
             // Debug logging
             Log::info("Attempting to delete image", [
                 'product_id' => $productId,
                 'image_id' => $imageId
             ]);
 
-            // Find product first
+            // Find product first with validation
             $product = Product::find($productId);
             if (!$product) {
                 Log::error("Product not found", ['product_id' => $productId]);
-                if (request()->ajax()) {
-                    return response()->json(['error' => 'Product not found.'], 404);
-                }
-                abort(404, 'Product not found');
+                return response()->json(['error' => 'Product not found.'], 404);
             }
 
-            // Find image
-            $image = ProductImage::find($imageId);
+            // Find image with proper model instantiation - THIS WAS THE MAIN ISSUE
+            $image = $imageId;
             if (!$image) {
                 Log::error("Image not found", ['image_id' => $imageId]);
-                if (request()->ajax()) {
-                    return response()->json(['error' => 'Image not found.'], 404);
-                }
-                abort(404, 'Image not found');
+                return response()->json(['error' => 'Image not found.'], 404);
             }
 
-            // Check if image belongs to product
+            // Verify image belongs to the product
             if ($image->product_id != $product->id) {
                 Log::error("Image doesn't belong to product", [
                     'image_product_id' => $image->product_id,
                     'requested_product_id' => $product->id
                 ]);
-                if (request()->ajax()) {
-                    return response()->json(['error' => 'Image does not belong to this product.'], 403);
-                }
-                abort(403, 'Unauthorized');
+                return response()->json(['error' => 'Image does not belong to this product.'], 403);
             }
 
-            // Delete file if it exists
-            if ($image->image_path && Storage::exists($image->image_path)) {
-                Storage::delete($image->image_path);
-                Log::info("File deleted", ['path' => $image->image_path]);
-            }
+            // Store image path for deletion
+            $imagePath = $image->image_path;
 
-            // Delete database record
+            // Delete database record first
             $image->delete();
             Log::info("Image record deleted", ['image_id' => $imageId]);
 
-            if (request()->ajax()) {
-                return response()->json(['message' => 'Image deleted successfully.']);
+            // Delete file from storage if it exists
+            if ($imagePath && Storage::disk('public')->exists($imagePath)) {
+                Storage::disk('public')->delete($imagePath);
+                Log::info("File deleted from storage", ['path' => $imagePath]);
             }
 
-            return redirect()->back()->with('success', 'Image deleted successfully.');
+            // Commit the transaction
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Image deleted successfully.',
+                'deleted_image_id' => $imageId
+            ], 200);
 
         } catch (\Exception $e) {
+            // Rollback transaction on error
+            DB::rollBack();
+            
             Log::error("Error deleting image", [
                 'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
+                'product_id' => $productId,
+                'image_id' => $imageId
             ]);
 
-            if (request()->ajax()) {
-                return response()->json(['error' => 'An error occurred while deleting the image.'], 500);
-            }
-
-            return redirect()->back()->with('error', 'An error occurred while deleting the image.');
+            return response()->json([
+                'success' => false,
+                'error' => 'An error occurred while deleting the image. Please try again.'
+            ], 500);
         }
     }
 
     public function setMain($productId, $imageId)
     {
         try {
+            DB::beginTransaction();
+
             $product = Product::find($productId);
             if (!$product) {
-                abort(404, 'Product not found');
+                return response()->json(['error' => 'Product not found.'], 404);
             }
 
             $image = ProductImage::find($imageId);
             if (!$image || $image->product_id != $product->id) {
-                abort(404, 'Image not found');
+                return response()->json(['error' => 'Image not found or does not belong to this product.'], 404);
             }
 
             // Set all images of this product to non-primary
@@ -101,16 +108,27 @@ class ProductImageController extends Controller
             // Set this image as primary
             $image->update(['is_primary' => true]);
 
-            return redirect()->back()->with('success', 'Main image updated successfully.');
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Main image updated successfully.',
+                'main_image_id' => $imageId
+            ]);
 
         } catch (\Exception $e) {
+            DB::rollBack();
+            
             Log::error("Error setting main image", [
                 'error' => $e->getMessage(),
                 'product_id' => $productId,
                 'image_id' => $imageId
             ]);
 
-            return redirect()->back()->with('error', 'An error occurred while updating the main image.');
+            return response()->json([
+                'success' => false,
+                'error' => 'An error occurred while updating the main image.'
+            ], 500);
         }
     }
 }
