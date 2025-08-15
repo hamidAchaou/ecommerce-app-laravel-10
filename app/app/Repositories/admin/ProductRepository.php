@@ -34,4 +34,29 @@ class ProductRepository extends BaseRepository
             perPage: $perPage
         );
     }
+
+    public function getLatestProducts(int $perPage = 10)
+    {
+        return $this->model
+            ->with(['category', 'images'])
+            ->orderBy('created_at', 'desc')
+            ->paginate($perPage);
+    }
+
+    public function getFeaturedProducts(int $limit = 8)
+    {
+        return $this->model
+            ->with(['category', 'images'])
+            ->orderBy('created_at', 'desc')
+            ->limit($limit)
+            ->get();
+    }
+
+    public function getBySlug(string $slug)
+    {
+        return $this->model
+            ->with(['category'])
+            ->where('slug', $slug)
+            ->first();
+    }
 }

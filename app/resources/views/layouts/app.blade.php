@@ -6,7 +6,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>@yield('title', config('app.name'))</title>
     <meta name="csrf-token" content="{{ csrf_token() }}" />
-
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+    </style>
+    
     {{-- Vite assets --}}
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 
