@@ -23,8 +23,9 @@ class ProductController extends Controller
             filters: $request->all(),
             perPage: 12
         );
+        $categories = $this->categoryRepo->all();
 
-        return view('frontend.products.index', compact('products'));
+        return view('frontend.products.index', compact('products', 'categories'));
     }
 
     /**
