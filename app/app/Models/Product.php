@@ -6,10 +6,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class Product extends Model
 {
-    // Only set keyType to 'string' if your IDs are actually strings (UUIDs, etc.)
-    // If they're auto-incrementing integers, remove this line or set to 'int'
-    protected $keyType = 'int'; // Change this from 'string' to 'int' if using integer IDs
-    
+    protected $keyType = 'int';
+
     protected $fillable = [
         'title',
         'description',
@@ -19,7 +17,7 @@ class Product extends Model
     ];
 
     /**
-     * Get the category of the product.
+     * Relationships
      */
     public function category()
     {
@@ -30,19 +28,33 @@ class Product extends Model
     {
         return $this->hasMany(ProductImage::class, 'product_id', 'id');
     }
-    /**
-     * Get the cart items for this product.
-     */
+
     public function cartItems()
     {
         return $this->hasMany(CartItem::class, 'product_id', 'id');
     }
 
-    /**
-     * Get the order items for this product.
-     */
     public function orderItems()
     {
         return $this->hasMany(OrderItem::class, 'product_id', 'id');
+    }
+
+    /**
+     * Helpers
+     */
+    public function mainImageUrl(): string
+    {
+        // Try to get the primary image first
+        $image = $this->images()->where('is_primary', true)->first();
+
+        // If no primary, fallback to first image
+        if (!$image) {
+            $image = $this->images()->first();
+        }
+
+        // Return image path if exists, otherwise a placeholder
+        return $image
+            ? asset('storage/' . $image->image_path)  // assumes images are stored in storage/app/public
+            : asset('images/placeholders/product-placeholder.png');
     }
 }

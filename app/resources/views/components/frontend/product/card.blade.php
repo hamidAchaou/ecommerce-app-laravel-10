@@ -1,30 +1,32 @@
 @props(['product'])
 
-{{-- @dd($product->images) --}}
-<div class="group relative bg-white p-4 rounded-lg shadow-sm hover:shadow-md transition-shadow duration-300">
+<div class="group relative bg-white rounded-lg shadow-md hover:shadow-xl transition-shadow duration-300 overflow-hidden">
     <!-- Product Image -->
-    <div class="w-full min-h-80 bg-gray-200 aspect-w-1 aspect-h-1 rounded-md overflow-hidden group-hover:opacity-75 lg:h-80 lg:aspect-none">
-        <img src="{{ asset('storage/' . ($product->images->first()->image_path ?? 'placeholder.jpg')) }}"
-        alt="{{ $product->name }}"
-        class="w-full h-full object-center object-cover lg:w-full lg:h-full">   
-    </div>
-
-    <!-- Product Info -->
-    <div class="mt-4 flex justify-between items-start">
-        <div>
-            <h3 class="text-sm text-gray-700">
-                <a href="{{ route('products.show', $product->id) }}">
-                    <span aria-hidden="true" class="absolute inset-0"></span>
-                    {{ $product->name }}
-                </a>
-            </h3>
-            <p class="mt-1 text-sm text-gray-500">{{ $product->short_description ?? '' }}</p>
+    <a href="{{ route('products.show', $product->id) }}" class="block">
+        <div class="relative w-full h-72 bg-gray-100 overflow-hidden">
+            <img src="{{ asset('storage/' . ($product->images->first()->image_path ?? 'placeholder.jpg')) }}"
+                 alt="{{ $product->title }}"
+                 class="w-full h-full object-cover object-center transform group-hover:scale-105 transition-transform duration-300">
         </div>
-        <p class="text-sm font-medium text-gray-900">${{ number_format($product->price, 2) }}</p>
-    </div>
+
+        <!-- Product Info -->
+        <div class="p-4">
+            <h3 class="text-lg font-semibold text-gray-800 group-hover:text-red-600 transition-colors">
+                {{ $product->title }}
+            </h3>
+            <p class="mt-1 text-sm text-gray-500 line-clamp-2">
+                {{ $product->short_description ?? Str::limit($product->description, 60) }}
+            </p>
+            <p class="mt-2 text-red-600 font-bold text-lg">
+                ${{ number_format($product->price, 2) }}
+            </p>
+        </div>
+    </a>
 
     <!-- Add to Cart Button -->
-    <button class="mt-4 w-full bg-red-600 border border-transparent rounded-md py-2 px-4 flex items-center justify-center text-base font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
-        Add to cart
-    </button>
+    <div class="p-4 pt-0">
+        <button class="w-full bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-all">
+            Add to Cart
+        </button>
+    </div>
 </div>
