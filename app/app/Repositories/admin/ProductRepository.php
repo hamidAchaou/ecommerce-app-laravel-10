@@ -51,12 +51,4 @@ class ProductRepository extends BaseRepository
             ->limit($limit)
             ->get();
     }
-
-    public function getBySlug(string $slug)
-    {
-        return $this->model
-            ->with(['category'])
-            ->where('slug', $slug)
-            ->first();
     }
-}

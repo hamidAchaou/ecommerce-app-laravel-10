@@ -30,15 +30,24 @@ class ProductController extends Controller
     /**
      * Display a single product details page.
      */
-    public function show(string $slug)
+    public function show(int $id)
     {
-        $product = $this->productRepo->getBySlug($slug);
-
+        $product = $this->productRepo->find($id);
+    
         if (!$product) {
             abort(404);
         }
 
-        return view('frontend.products.show', compact('product'));
+        // ✅ Fetch related products from the same category
+        $relatedProducts = $this->productRepo->getProductsPaginate(
+            filters: [
+                'category_id' => $product->category_id,
+                'exclude_id' => $product->id, // avoid showing the same product
+            ],
+            perPage: 4 // show only 4 related items
+        );
+    
+        return view('frontend.products.show', compact('product', 'relatedProducts'));
     }
 
     /**

@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Frontend\CartController;
 use App\Http\Controllers\Frontend\HomeController;
 use App\Http\Controllers\Frontend\ProductController;
 use App\Http\Controllers\Frontend\CategoryController;
@@ -37,6 +38,14 @@ Route::middleware(['auth'])->group(function () {
 // ✅ Seller panel
 Route::middleware(['auth', 'role:seller'])->group(function () {
     Route::get('/seller', fn () => 'Seller Panel')->name('seller.panel');
+});
+
+// 🛒 Cart routes
+Route::middleware(['auth'])->group(function () {
+    Route::get('/cart', [CartController::class, 'index'])->name('cart.index'); 
+    Route::post('/cart', [CartController::class, 'store'])->name('cart.store');
+    Route::patch('/cart/{cartItem}', [CartController::class, 'update'])->name('cart.update');
+    Route::delete('/cart/{cartItem}', [CartController::class, 'destroy'])->name('cart.destroy');
 });
 
 // ✅ Admin routes
