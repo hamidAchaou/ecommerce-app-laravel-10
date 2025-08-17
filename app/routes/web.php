@@ -48,6 +48,11 @@ Route::middleware(['auth'])->group(function () {
     Route::delete('/cart/{cartItem}', [CartController::class, 'destroy'])->name('cart.destroy');
 });
 
+// contact
+Route::post('/contact', [HomeController::class, 'contact'])->name('contact.submit');
+// about
+Route::get('/about', [HomeController::class, 'about'])->name('about');
+
 // ✅ Admin routes
 require __DIR__ . '/admin.php';
 

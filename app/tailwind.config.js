@@ -10,7 +10,15 @@ module.exports = {
   ],
   theme: {
     extend: {
-      // You can extend your theme here, e.g. colors, fonts, spacing...
+      colors: {
+        morocco: {
+          red: '#C1272D',      // Moroccan Red
+          blue: '#005CA8',     // Majorelle Blue
+          green: '#007A3D',    // Emerald Moroccan Green
+          yellow: '#FFD700',   // Golden Yellow
+          ivory: '#FAF3E0',    // Ivory Beige
+        },
+      },
     },
   },
   plugins: [
