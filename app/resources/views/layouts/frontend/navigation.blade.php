@@ -29,13 +29,13 @@
                 @foreach ($navLinks as $link)
                     <li>
                         <a href="{{ url($link['route']) }}"
-                           class="{{ Route::is($link['match']) ? $activeClasses : $inactiveClasses }} 
+                           class="{{ request()->is($link['match']) ? $activeClasses : $inactiveClasses }}
                                   inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
                             {{ $link['label'] }}
                         </a>
                     </li>
                 @endforeach
-            </ul>
+            </ul>            
 
             <!-- Right Section: Cart + Auth -->
             <div class="flex items-center space-x-4">

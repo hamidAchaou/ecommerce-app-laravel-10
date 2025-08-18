@@ -23,9 +23,11 @@ Route::view('/contact', 'frontend.contact')->name('contact');
 
 // Products
 Route::resource('products', ProductController::class);
-Route::get('/categories/{category:slug}', [CategoryController::class, 'show'])->name('categories.show');
-Route::get('/categories/{category:slug}/products', [ProductController::class, 'categoryProducts'])
-    ->name('categories.products');
+// Route::get('/categories/{category:slug}/products', [ProductController::class, 'categoryProducts'])
+//     ->name('categories.products');
+
+// Categories
+Route::resource('categories', CategoryController::class);
 
 // Authenticated user profile
 Route::middleware(['auth'])->group(function () {
@@ -37,12 +39,12 @@ Route::middleware(['auth'])->group(function () {
 
 // ✅ Seller panel
 Route::middleware(['auth', 'role:seller'])->group(function () {
-    Route::get('/seller', fn () => 'Seller Panel')->name('seller.panel');
+    Route::get('/seller', fn() => 'Seller Panel')->name('seller.panel');
 });
 
 // 🛒 Cart routes
 Route::middleware(['auth'])->group(function () {
-    Route::get('/cart', [CartController::class, 'index'])->name('cart.index'); 
+    Route::get('/cart', [CartController::class, 'index'])->name('cart.index');
     Route::post('/cart', [CartController::class, 'store'])->name('cart.store');
     Route::patch('/cart/{cartItem}', [CartController::class, 'update'])->name('cart.update');
     Route::delete('/cart/{cartItem}', [CartController::class, 'destroy'])->name('cart.destroy');
