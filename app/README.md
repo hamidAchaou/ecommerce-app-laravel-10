@@ -20,3 +20,5 @@ Clients	العملاء
 Statistiques	Dashboard للأرقام والإحصائيات
 Paiements	تتبع المدفوعات
 Paramètres	إعدادات الموقع أو المتجر
+
+php artisan vendor:publish --tag=laravel-pagination
