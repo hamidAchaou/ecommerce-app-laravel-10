@@ -19,14 +19,19 @@ class ProductController extends Controller
      */
     public function index(Request $request)
     {
-        $products = $this->productRepo->getProductsPaginate(
-            filters: $request->all(),
-            perPage: 12
-        );
+        $filters = [
+            'search' => $request->input('search'),
+            'category_ids' => $request->input('category', []),
+            'min' => $request->input('min', 0),
+            'max' => $request->input('max', 500),
+        ];
+
+        $products = $this->productRepo->getProductsPaginate(filters: $filters, perPage: 9);
         $categories = $this->categoryRepo->all();
 
         return view('frontend.products.index', compact('products', 'categories'));
     }
+
 
     /**
      * Display a single product details page.
@@ -34,7 +39,7 @@ class ProductController extends Controller
     public function show(int $id)
     {
         $product = $this->productRepo->find($id);
-    
+
         if (!$product) {
             abort(404);
         }
@@ -43,12 +48,15 @@ class ProductController extends Controller
         $relatedProducts = $this->productRepo->getProductsPaginate(
             filters: [
                 'category_id' => $product->category_id,
-                'exclude_id' => $product->id, // avoid showing the same product
+                'exclude_id' => $product->id,
             ],
-            perPage: 4 // show only 4 related items
+            perPage: 4
         );
-    
-        return view('frontend.products.show', compact('product', 'relatedProducts'));
+        // dd($relatedProducts->first()->images);
+        return view('frontend.products.show', [
+            'product' => $product,
+            'relatedProducts' => $relatedProducts->getCollection(),
+        ]);
     }
 
     /**

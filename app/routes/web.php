@@ -4,6 +4,7 @@ use App\Http\Controllers\Frontend\CartController;
 use App\Http\Controllers\Frontend\HomeController;
 use App\Http\Controllers\Frontend\ProductController;
 use App\Http\Controllers\Frontend\CategoryController;
+use App\Http\Controllers\frontend\CheckoutController;
 use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
 
@@ -42,18 +43,24 @@ Route::middleware(['auth', 'role:seller'])->group(function () {
     Route::get('/seller', fn() => 'Seller Panel')->name('seller.panel');
 });
 
-// 🛒 Cart routes
-Route::middleware(['auth'])->group(function () {
-    Route::get('/cart', [CartController::class, 'index'])->name('cart.index');
-    Route::post('/cart', [CartController::class, 'store'])->name('cart.store');
-    Route::patch('/cart/{cartItem}', [CartController::class, 'update'])->name('cart.update');
-    Route::delete('/cart/{cartItem}', [CartController::class, 'destroy'])->name('cart.destroy');
-});
+// Cart accessible for both guests and authenticated users
+Route::get('/cart', [CartController::class, 'index'])->name('cart.index');
+Route::post('/cart', [CartController::class, 'store'])->name('cart.store');
+Route::patch('/cart/{cartItem}', [CartController::class, 'update'])->name('cart.update');
+Route::delete('/cart/{cartItem}', [CartController::class, 'destroy'])->name('cart.destroy');
+Route::delete('/cart', [CartController::class, 'clear'])->name('cart.clear');
 
 // contact
 Route::post('/contact', [HomeController::class, 'contact'])->name('contact.submit');
 // about
 Route::get('/about', [HomeController::class, 'about'])->name('about');
+
+// Checkout only for authenticated users
+Route::middleware('auth')->group(function () {
+    Route::get('/checkout', [CheckoutController::class, 'index'])->name('checkout.index');
+    Route::post('/checkout', [CheckoutController::class, 'process'])->name('checkout.process');
+});
+
 
 // ✅ Admin routes
 require __DIR__ . '/admin.php';

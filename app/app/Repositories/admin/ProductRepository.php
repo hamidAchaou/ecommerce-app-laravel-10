@@ -25,16 +25,37 @@ class ProductRepository extends BaseRepository
      * @param int $perPage
      * @return LengthAwarePaginator
      */
-    public function getProductsPaginate(array $filters = [], int $perPage = 10): LengthAwarePaginator
+    public function getProductsPaginate(array $filters = [], int $perPage = 12): LengthAwarePaginator
     {
-        return $this->getAllPaginate(
-            filters: $filters,
-            with: ['category'],
-            searchableFields: ['title', 'description'],
-            perPage: $perPage
-        );
+        $query = $this->model->with('category');
+    
+        // Search by title or description
+        if (!empty($filters['search'])) {
+            $query->where(function ($q) use ($filters) {
+                $q->where('title', 'LIKE', "%{$filters['search']}%")
+                  ->orWhere('description', 'LIKE', "%{$filters['search']}%");
+            });
+        }
+    
+        // Ensure category_ids is always an array
+        $categoryIds = $filters['category_ids'] ?? [];
+        if (!is_array($categoryIds)) {
+            $categoryIds = [$categoryIds];
+        }
+    
+        // Filter by multiple categories
+        if (!empty($categoryIds) && !(count($categoryIds) === 1 && $categoryIds[0] === "")) {
+            $query->whereIn('category_id', $categoryIds);
+        }
+    
+        // Filter by price range
+        $min = $filters['min'] ?? 0;
+        $max = $filters['max'] ?? 500;
+        $query->whereBetween('price', [$min, $max]);
+    
+        return $query->orderBy('created_at', 'desc')->paginate($perPage);
     }
-
+ 
     public function getLatestProducts(int $perPage = 10)
     {
         return $this->model

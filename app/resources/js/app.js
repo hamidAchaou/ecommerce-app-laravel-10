@@ -5,6 +5,7 @@ import Swal from "sweetalert2";
 import { confirmDelete } from "./helpers/confirmDelete";
 import Choices from "choices.js";
 import Chart from 'chart.js/auto';
+import './pages/product';
 
 // ==================== Alpine ====================
 Alpine.plugin(collapse);

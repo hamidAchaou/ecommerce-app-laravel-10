@@ -5,6 +5,7 @@ namespace Database\Seeders;
 // use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use Database\Seeders\Admin\CategorySeeder;
+use Database\Seeders\Admin\ProductSeeder;
 
 class DatabaseSeeder extends Seeder
 {
@@ -20,6 +21,7 @@ class DatabaseSeeder extends Seeder
             CountrySeeder::class,
             CitySeeder::class,
             CategorySeeder::class,
+            \Database\Seeders\Admin\ProductSeeder::class,
         ]);
     }
 }

@@ -1,7 +1,8 @@
 @extends('layouts.app')
 
 @section('title', 'Our Products')
-@section('meta_description', 'Browse our curated selection of Moroccan crafts, pottery, weaving, woodwork, jewelry, and
+@section('meta_description',
+    'Browse our curated selection of Moroccan crafts, pottery, weaving, woodwork, jewelry, and
     leatherwork. Filter by price and category for an easier shopping experience.')
 
 @section('content')
@@ -30,21 +31,32 @@
                 </form>
             </div>
 
+
+            <!-- Category Filter Card -->
             <!-- Category Filter Card -->
             <div class="bg-white rounded-2xl shadow-lg p-6 sticky top-40 hover:shadow-2xl transition-shadow duration-300">
                 <h3 class="text-lg font-semibold text-gray-900 mb-4">Categories</h3>
                 <form action="{{ route('products.index') }}" method="GET" class="space-y-2">
+
+                    {{-- Preserve search & price --}}
+                    <input type="hidden" name="search" value="{{ request('search') }}">
+                    <input type="hidden" name="min" value="{{ request('min') }}">
+                    <input type="hidden" name="max" value="{{ request('max') }}">
+
                     @foreach ($categories as $category)
                         <label class="flex items-center gap-3 p-2 rounded-lg hover:bg-red-50 cursor-pointer transition">
-                            <input type="radio" name="category" value="{{ $category->id }}" onchange="this.form.submit()"
-                                {{ request('category') == $category->id ? 'checked' : '' }}
+                            <input type="checkbox" name="category[]" value="{{ $category->id }}"
+                                onchange="this.form.submit()"
+                                {{ in_array($category->id, request('category', [])) ? 'checked' : '' }}
                                 class="text-red-600 focus:ring-red-500 border-gray-300">
                             <span class="text-gray-700 font-medium">{{ $category->name }}</span>
                         </label>
                     @endforeach
+
+                    {{-- All categories checkbox --}}
                     <label class="flex items-center gap-3 p-2 rounded-lg hover:bg-red-50 cursor-pointer transition">
-                        <input type="radio" name="category" value="" onchange="this.form.submit()"
-                            {{ request('category') == '' ? 'checked' : '' }}
+                        <input type="checkbox" name="category[]" value="" onchange="this.form.submit()"
+                            {{ empty(request('category')) ? 'checked' : '' }}
                             class="text-red-600 focus:ring-red-500 border-gray-300">
                         <span class="text-gray-700 font-medium">All Categories</span>
                     </label>
@@ -58,8 +70,8 @@
                 <form action="{{ route('products.index') }}" method="GET" class="space-y-4">
 
                     {{-- Hidden fields to preserve other filters --}}
-                    <input type="hidden" name="search" value="{{ request('search') }}">
-                    <input type="hidden" name="category" value="{{ request('category') }}">
+                    <input type="hidden" name="min" id="minPrice" value="{{ request('min', 0) }}">
+                    <input type="hidden" name="max" id="maxPrice" value="{{ request('max', 500) }}">                    
 
                     <div class="relative h-2 bg-red-200 rounded-full">
                         <input type="range" min="0" max="500" value="{{ request('min') ?? 0 }}"
