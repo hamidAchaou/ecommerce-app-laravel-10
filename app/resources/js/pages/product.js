@@ -79,3 +79,27 @@ document.addEventListener("DOMContentLoaded", () => {
         button.classList.toggle("cursor-not-allowed", isLoading);
     }
 });
+
+// add to cart js
+document.addEventListener('DOMContentLoaded', () => {
+    document.querySelectorAll('.add-to-cart-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const maxQuantity = parseInt(btn.dataset.maxQuantity || 99, 10);
+            let currentQuantity = parseInt(btn.dataset.quantity, 10) || 0;
+
+            if (currentQuantity < maxQuantity) {
+                currentQuantity += 1;
+                btn.dataset.quantity = currentQuantity;
+
+                // Update button text
+                const textElement = btn.querySelector('.cart-text');
+                textElement.textContent = currentQuantity === 1 ? '1 Added to Cart' : `${currentQuantity} Added to Cart`;
+
+                // Update button background
+                btn.classList.remove('bg-morocco-red', 'bg-morocco-blue');
+                btn.classList.add(currentQuantity === 1 ? 'bg-morocco-blue' : 'bg-morocco-green');
+
+            }
+        });
+    });
+});
