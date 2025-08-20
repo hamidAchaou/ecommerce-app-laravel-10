@@ -66,6 +66,7 @@
     {{-- Bottom Bar --}}
     <div class="border-t border-gray-800 mt-8 py-4 text-center text-gray-500 text-sm flex flex-col md:flex-row md:justify-between md:items-center px-4 sm:px-6 lg:px-8">
         <p>&copy; {{ date('Y') }} AtlasShoop. All rights reserved.</p>
+        <img src="{{ asset('assets/images/logo-removebg.webp') }}" alt="ATlasShoop Logo" class="w-10 h-10 mb-6">
         <p class="mt-2 md:mt-0">Designed with ❤️ in Morocco</p>
     </div>
 

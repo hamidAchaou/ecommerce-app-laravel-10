@@ -21,9 +21,10 @@
         <div class="flex justify-between h-16 items-center">
             <!-- Logo -->
             <a href="{{ url('/') }}" class="flex-shrink-0 flex items-center" aria-label="Home">
-                <svg class="h-8 w-8 text-morocco-red" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                {{-- <svg class="h-8 w-8 text-morocco-red" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
-                </svg>
+                </svg> --}}
+            <img src="{{ asset('assets/images/logo-removebg.webp') }}" alt="ATlasShoop Logo" class="w-12 h-12 mb-6">
             </a>
 
             <!-- Centered Links -->
