@@ -181,20 +181,21 @@ class CartController extends Controller
      */
     public function clearAll(Request $request)
     {
-        if ($request->user()) {
-            // Authenticated user → clear from database
-            DB::table('cart_items')
-                ->where('user_id', $request->user()->id)
-                ->delete();
+        if ($user = $request->user()) {
+            // Authenticated user → delete cart items via Eloquent
+            $cart = $user->cart()->first();
+            if ($cart) {
+                $cart->cartItems()->delete();
+            }
         } else {
-            // Guest user → clear session cart
+            // Guest user → clear session
             $request->session()->forget('cart');
         }
-
+    
         return response()->json([
             'message' => 'Cart cleared successfully'
         ]);
-    }
+    }    
 
     /**
      * Get cart items count (useful for AJAX calls)
