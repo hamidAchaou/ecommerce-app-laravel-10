@@ -6,6 +6,7 @@ import { confirmDelete } from "./helpers/confirmDelete";
 import Choices from "choices.js";
 import Chart from 'chart.js/auto';
 import './pages/product';
+import './pages/cart';
 
 // ==================== Alpine ====================
 Alpine.plugin(collapse);

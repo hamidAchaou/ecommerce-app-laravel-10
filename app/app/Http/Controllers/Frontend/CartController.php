@@ -18,35 +18,37 @@ class CartController extends Controller
     }
 
     /**
-     * Display the shopping cart.
-     * Combines session cart (guest) with database cart (auth).
+     * Display the shopping cart (JSON or View).
      */
-    public function index()
+    public function index(Request $request)
     {
         $cartItems = $this->getCartItems();
         $subtotal = $cartItems->sum(fn($item) => $item['price'] * $item['quantity']);
-
-        return view('frontend.cart.index', [
-            'cartItems' => $cartItems,
-            'subtotal' => $subtotal,
-        ]);
+    
+        if ($request->wantsJson()) {
+            return response()->json([
+                'cartItems' => $cartItems,
+                'subtotal'  => $subtotal,
+            ]);
+        }
+    
+        return view('frontend.cart.index', compact('cartItems', 'subtotal'));
     }
-
+    
     /**
-     * Add product to cart (guest or auth).
+     * Add product to cart.
      */
     public function store(Request $request)
     {
         $request->validate([
             'product_id' => 'required|exists:products,id',
-            'quantity' => 'required|integer|min:1',
+            'quantity'   => 'required|integer|min:1',
         ]);
 
-        $product = $this->productRepo->find($request->product_id);
+        $product  = $this->productRepo->find($request->product_id);
         $quantity = (int) $request->quantity;
 
         if ($user = auth()->user()) {
-            // Auth user → store in database
             $cart = $user->cart()->firstOrCreate(['client_id' => $user->id]);
             $cart->cartItems()->updateOrCreate(
                 ['product_id' => $product->id],
@@ -55,30 +57,24 @@ class CartController extends Controller
 
             $cartCount = $cart->cartItems()->count();
         } else {
-            // Guest → store in session
             $cart = Session::get('cart', []);
-            if (isset($cart[$product->id])) {
-                $cart[$product->id]['quantity'] += $quantity;
-            } else {
-                $cart[$product->id] = [
-                    'id' => $product->id,
-                    'title' => $product->title,
-                    'price' => $product->price,
-                    'quantity' => $quantity,
-                ];
-            }
+            $cart[$product->id]['id']       = $product->id;
+            $cart[$product->id]['title']    = $product->title;
+            $cart[$product->id]['price']    = $product->price;
+            $cart[$product->id]['quantity'] = ($cart[$product->id]['quantity'] ?? 0) + $quantity;
             Session::put('cart', $cart);
+
             $cartCount = count($cart);
         }
 
         return response()->json([
-            'message' => 'Product added to cart!',
+            'message'    => 'Product added to cart!',
             'cart_count' => $cartCount,
         ]);
     }
 
     /**
-     * Update item quantity in cart.
+     * Update item quantity.
      */
     public function update(Request $request, int $id)
     {
@@ -89,71 +85,64 @@ class CartController extends Controller
             $cart = $user->cart()->first();
             if ($cart && $cartItem = $cart->cartItems()->where('product_id', $id)->first()) {
                 $cartItem->update(['quantity' => $quantity]);
-                return redirect()->route('cart.index')->with('success', 'Cart updated.');
             }
         } else {
             $cart = Session::get('cart', []);
             if (isset($cart[$id])) {
                 $cart[$id]['quantity'] = $quantity;
                 Session::put('cart', $cart);
-                return redirect()->route('cart.index')->with('success', 'Cart updated.');
             }
         }
 
-        return redirect()->route('cart.index')->with('error', 'Item not found in cart.');
+        return response()->json(['message' => 'Cart updated.']);
     }
 
     /**
-     * Remove item from cart.
+     * Remove item.
      */
-    public function destroy(int $id)
+    public function destroy(Request $request, int $id)
     {
         if ($user = auth()->user()) {
             $cart = $user->cart()->first();
-            if ($cart && $cartItem = $cart->cartItems()->where('product_id', $id)->first()) {
-                $cartItem->delete();
-                return redirect()->route('cart.index')->with('success', 'Item removed.');
+            if ($cart) {
+                $cart->cartItems()->where('product_id', $id)->delete();
             }
         } else {
             $cart = Session::get('cart', []);
-            if (isset($cart[$id])) {
-                unset($cart[$id]);
-                Session::put('cart', $cart);
-                return redirect()->route('cart.index')->with('success', 'Item removed.');
-            }
+            unset($cart[$id]);
+            Session::put('cart', $cart);
         }
-
-        return redirect()->route('cart.index')->with('error', 'Item not found in cart.');
+    
+        return response()->json(['message' => 'Item removed successfully!']);
     }
 
     /**
-     * Clear entire cart.
+     * Clear all.
      */
     public function clear()
     {
         if ($user = auth()->user()) {
             $cart = $user->cart()->first();
-            if ($cart) $cart->cartItems()->delete();
+            if ($cart) {
+                $cart->cartItems()->delete();
+            }
         }
         Session::forget('cart');
 
-        return redirect()->route('cart.index')->with('success', 'Cart cleared.');
+        return response()->json(['message' => 'Cart cleared.']);
     }
 
     /**
-     * Get cart items (merge guest session + user DB cart if authenticated)
+     * Merge and get items.
      */
     protected function getCartItems()
     {
-        // 1️⃣ Guest cart from session
         $sessionCart = collect(Session::get('cart', []));
 
         if ($user = auth()->user()) {
-            // 2️⃣ Get user cart from database with products and images
-            $userCart = $user->cart()->firstOrCreate(['client_id' => $user->id]);
+            $userCart   = $user->cart()->firstOrCreate(['client_id' => $user->id]);
             $dbCartItems = $userCart->cartItems()->with('product.images')->get();
 
-            // 3️⃣ Merge session cart into user cart (one-time on login)
             if ($sessionCart->isNotEmpty()) {
                 foreach ($sessionCart as $item) {
                     $userCart->cartItems()->updateOrCreate(
@@ -165,7 +154,6 @@ class CartController extends Controller
                 $dbCartItems = $userCart->cartItems()->with('product.images')->get();
             }
 
-            // 4️⃣ Map database cart to array with image URLs
             return $dbCartItems->map(fn($item) => [
                 'id'       => $item->product_id,
                 'title'    => $item->product->title,
@@ -175,9 +163,8 @@ class CartController extends Controller
             ]);
         }
 
-        // 5️⃣ Map guest session cart to include images
         return $sessionCart->map(function ($item) {
-            $product = \App\Models\Product::with('images')->find($item['id']);
+            $product      = \App\Models\Product::with('images')->find($item['id']);
             $item['image'] = $product ? $product->mainImageUrl() : asset('images/placeholders/product-placeholder.png');
             return $item;
         });

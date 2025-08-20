@@ -4,10 +4,12 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\LoginRequest;
+use App\Models\CartItem;
 use App\Providers\RouteServiceProvider;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 
 class AuthenticatedSessionController extends Controller
@@ -29,7 +31,7 @@ class AuthenticatedSessionController extends Controller
         $request->session()->regenerate();
 
         $user = Auth::user();
-        
+
         $request->session()->regenerate();
         if ($user->hasRole('admin')) {
             return redirect()->route('admin.dashboard');
@@ -49,5 +51,17 @@ class AuthenticatedSessionController extends Controller
         $request->session()->regenerateToken();
 
         return redirect('/');
+    }
+
+    protected function authenticated(Request $request, $user)
+    {
+        $sessionCart = session()->get('cart', []);
+        foreach ($sessionCart as $productId => $quantity) {
+            CartItem::updateOrCreate(
+                ['user_id' => $user->id, 'product_id' => $productId],
+                ['quantity' => DB::raw("quantity + $quantity")]
+            );
+        }
+        session()->forget('cart');
     }
 }
