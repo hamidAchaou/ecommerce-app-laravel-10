@@ -43,7 +43,7 @@
                 <!-- Cart Icon with Dropdown -->
                 <div class="relative" x-data="{ cartOpen: false }">
                     <button @click="cartOpen = !cartOpen"
-                            class="relative text-gray-500 hover:text-morocco-blue focus:outline-none focus:ring-2 focus:ring-morocco-blue/20 p-2 rounded-full"
+                            class="relative text-gray-500 hover:text-morocco-blue focus:outline-none focus:ring-2 focus:ring-morocco-blue/20 p-2 rounded-full transition-colors duration-200"
                             aria-label="View cart"
                             aria-expanded="cartOpen"
                             aria-controls="cart-dropdown">
@@ -51,8 +51,10 @@
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                   d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
                         </svg>
-                        <span class="absolute -top-2 -right-2 bg-morocco-red text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center"
-                              x-text="cartItems?.length || 0">0</span>
+                        <!-- Cart Count Badge -->
+                        <span class="absolute -top-2 -right-2 bg-morocco-red text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center transition-all duration-200"
+                              x-show="getCartCount() > 0"
+                              x-text="getCartCount()">0</span>
                     </button>
 
                     <!-- Cart Dropdown -->
@@ -68,42 +70,96 @@
                          id="cart-dropdown"
                          role="region"
                          aria-label="Shopping cart">
+                        
+                        <!-- Cart Header -->
                         <div class="p-4 border-b border-gray-100">
-                            <h3 class="text-lg font-semibold text-gray-900">Your Cart</h3>
-                        </div>
-                        <ul class="divide-y divide-gray-100 max-h-64 overflow-y-auto">
-                            <template x-if="cartItems?.length > 0">
-                                <template x-for="item in cartItems" :key="item.id">
-                                    <li class="flex items-center gap-4 p-4 hover:bg-gray-50">
-                                        <img :src="item.image" :alt="item.title" class="w-16 h-16 object-cover rounded-lg">
-                                        <div class="flex-1">
-                                            <h4 class="text-sm font-medium text-gray-900 line-clamp-1" x-text="item.title"></h4>
-                                            <p class="text-sm text-gray-500" x-text="`$${item.price.toFixed(2)} x ${item.quantity}`"></p>
-                                        </div>
-                                        <button @click="removeFromCart(item.id)"
-                                                class="text-gray-400 hover:text-morocco-red"
-                                                aria-label="Remove item from cart">
-                                            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                                            </svg>
-                                        </button>
-                                    </li>
+                            <div class="flex justify-between items-center">
+                                <h3 class="text-lg font-semibold text-gray-900">Your Cart</h3>
+                                <template x-if="cartItems.length > 0">
+                                    <button @click="clearCart()"
+                                            class="text-sm text-red-600 hover:text-red-800 font-medium">
+                                        Clear All
+                                    </button>
                                 </template>
-                            </template>
-                            <template x-if="!cartItems || cartItems.length === 0">
-                                <li class="p-4 text-center text-gray-500 text-sm">Your cart is empty</li>
-                            </template>
-                        </ul>
-                        <div class="p-4 border-t border-gray-100">
-                            <div class="flex justify-between text-sm font-medium text-gray-900">
-                                <span>Total</span>
-                                <span x-text="cartItems ? `$${cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0).toFixed(2)}` : '$0.00'"></span>
                             </div>
-                            <a href="{{ url('/cart') }}"
-                               class="mt-4 block w-full bg-morocco-red text-white text-center py-2 rounded-full font-semibold hover:bg-morocco-blue transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-morocco-blue/20">
-                                Proceed to Checkout
-                            </a>
                         </div>
+
+                        <!-- Cart Items -->
+                        <div class="max-h-64 overflow-y-auto">
+                            <template x-if="cartItems.length > 0">
+                                <ul class="divide-y divide-gray-100">
+                                    <template x-for="item in cartItems" :key="item.id">
+                                        <li class="flex items-center gap-3 p-4 hover:bg-gray-50 transition-colors duration-150">
+                                            <img :src="item.image" :alt="item.title" 
+                                                 class="w-12 h-12 object-cover rounded-lg border border-gray-200">
+                                            
+                                            <div class="flex-1 min-w-0">
+                                                <h4 class="text-sm font-medium text-gray-900 truncate" x-text="item.title"></h4>
+                                                <div class="flex items-center gap-2 mt-1">
+                                                    <span class="text-sm font-semibold text-morocco-red" x-text="`$${item.price.toFixed(2)}`"></span>
+                                                    <div class="flex items-center gap-1">
+                                                        <button @click="updateQuantity(item.id, item.quantity - 1)"
+                                                                class="w-6 h-6 flex items-center justify-center text-gray-500 hover:text-morocco-red border border-gray-300 rounded"
+                                                                :disabled="item.quantity <= 1">
+                                                            <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4" />
+                                                            </svg>
+                                                        </button>
+                                                        <span class="text-xs font-medium px-2" x-text="item.quantity"></span>
+                                                        <button @click="updateQuantity(item.id, item.quantity + 1)"
+                                                                class="w-6 h-6 flex items-center justify-center text-gray-500 hover:text-morocco-red border border-gray-300 rounded">
+                                                            <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                                                            </svg>
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            
+                                            <button @click="removeFromCart(item.id)"
+                                                    class="text-gray-400 hover:text-red-500 transition-colors duration-150 p-1"
+                                                    aria-label="Remove item from cart">
+                                                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                                </svg>
+                                            </button>
+                                        </li>
+                                    </template>
+                                </ul>
+                            </template>
+                            
+                            <template x-if="cartItems.length === 0">
+                                <div class="p-8 text-center text-gray-500">
+                                    <svg class="mx-auto h-12 w-12 text-gray-300 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+                                    </svg>
+                                    <p class="text-sm">Your cart is empty</p>
+                                </div>
+                            </template>
+                        </div>
+
+                        <!-- Cart Footer -->
+                        <template x-if="cartItems.length > 0">
+                            <div class="p-4 border-t border-gray-100 bg-gray-50">
+                                <div class="flex justify-between items-center mb-3">
+                                    <span class="text-sm font-medium text-gray-900">Total</span>
+                                    <span class="text-lg font-bold text-morocco-red" x-text="`$${getCartTotal().toFixed(2)}`"></span>
+                                </div>
+                                
+                                <div class="grid grid-cols-2 gap-2">
+                                    <a href="{{ url('/cart') }}"
+                                       @click="cartOpen = false"
+                                       class="block text-center px-3 py-2 bg-white border border-morocco-red text-morocco-red rounded-lg font-medium hover:bg-morocco-red hover:text-white transition-all duration-200 text-sm">
+                                        View Cart
+                                    </a>
+                                    <a href="{{ url('/checkout') }}"
+                                       @click="cartOpen = false"
+                                       class="block text-center px-3 py-2 bg-morocco-red text-white rounded-lg font-medium hover:bg-morocco-blue transition-all duration-200 text-sm">
+                                        Checkout
+                                    </a>
+                                </div>
+                            </div>
+                        </template>
                     </div>
                 </div>
 
@@ -130,23 +186,40 @@
 
                         <ul x-show="dropdown"
                             @click.away="dropdown = false"
-                            x-transition
+                            x-transition:enter="transition ease-out duration-200"
+                            x-transition:enter-start="opacity-0 transform scale-95"
+                            x-transition:enter-end="opacity-100 transform scale-100"
+                            x-transition:leave="transition ease-in duration-150"
+                            x-transition:leave-start="opacity-100 transform scale-100"
+                            x-transition:leave-end="opacity-0 transform scale-95"
                             class="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg ring-1 ring-black/5 z-50"
                             id="user-menu">
                             <li>
                                 <a href="{{ route('profile.show') }}"
-                                   class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
-                                    <svg class="inline h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                   class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors duration-150">
+                                    <svg class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                                     </svg>
                                     Profile
                                 </a>
                             </li>
                             <li>
+                                <a href="{{ url('/orders') }}"
+                                   class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors duration-150">
+                                    <svg class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                                    </svg>
+                                    My Orders
+                                </a>
+                            </li>
+                            <li>
+                                <hr class="my-1">
+                            </li>
+                            <li>
                                 <a href="{{ route('logout') }}"
                                    onclick="event.preventDefault(); document.getElementById('logout-form').submit();"
-                                   class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
-                                    <svg class="inline h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                   class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-red-50 hover:text-red-600 transition-colors duration-150">
+                                    <svg class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
                                     </svg>
                                     Logout
@@ -160,12 +233,12 @@
                 @else
                     <div class="flex space-x-2">
                         <a href="{{ route('login') }}"
-                           class="px-4 py-2 text-sm font-medium text-morocco-blue border border-morocco-blue rounded-full hover:bg-morocco-blue/10 focus:outline-none focus:ring-2 focus:ring-morocco-blue/20">
+                           class="px-4 py-2 text-sm font-medium text-morocco-blue border border-morocco-blue rounded-full hover:bg-morocco-blue/10 focus:outline-none focus:ring-2 focus:ring-morocco-blue/20 transition-all duration-200">
                             Login
                         </a>
                         @if (Route::has('register'))
                             <a href="{{ route('register') }}"
-                               class="px-4 py-2 text-sm font-medium text-white bg-morocco-red rounded-full hover:bg-morocco-blue focus:outline-none focus:ring-2 focus:ring-morocco-red/20">
+                               class="px-4 py-2 text-sm font-medium text-white bg-morocco-red rounded-full hover:bg-morocco-blue focus:outline-none focus:ring-2 focus:ring-morocco-red/20 transition-all duration-200">
                                 Register
                             </a>
                         @endif
@@ -174,9 +247,9 @@
             </div>
 
             <!-- Mobile Menu Button -->
-            <div class="sm:hidden">
+            <div class="sm:hidden" x-data="{ open: false }">
                 <button @click="open = !open"
-                        class="inline-flex items-center justify-center p-2 rounded-full text-gray-500 hover:text-morocco-blue hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-morocco-red"
+                        class="inline-flex items-center justify-center p-2 rounded-full text-gray-500 hover:text-morocco-blue hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-morocco-red transition-all duration-200"
                         aria-label="Toggle mobile menu"
                         aria-expanded="open">
                     <svg class="h-6 w-6" :class="{ 'hidden': open }" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -186,26 +259,85 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                     </svg>
                 </button>
-            </div>
-        </div>
 
-        <!-- Mobile Menu -->
-        <div x-show="open" class="sm:hidden" x-transition:enter="transition ease-out duration-200"
-             x-transition:enter-start="opacity-0 transform -translate-y-2"
-             x-transition:enter-end="opacity-100 transform translate-y-0"
-             x-transition:leave="transition ease-in duration-150"
-             x-transition:leave-start="opacity-100 transform translate-y-0"
-             x-transition:leave-end="opacity-0 transform -translate-y-2">
-            <ul class="pt-2 pb-4 space-y-1">
-                @foreach ($navLinks as $link)
-                    <li>
-                        <a href="{{ url($link['route']) }}"
-                           class="{{ request()->is($link['match']) ? 'bg-morocco-red/10 text-morocco-red' : 'text-gray-600 hover:bg-gray-50 hover:text-morocco-blue' }} block pl-4 pr-4 py-2 text-base font-medium">
-                            {{ $link['label'] }}
-                        </a>
-                    </li>
-                @endforeach
-            </ul>
+                <!-- Mobile Menu -->
+                <div x-show="open" 
+                     @click.away="open = false"
+                     x-transition:enter="transition ease-out duration-200"
+                     x-transition:enter-start="opacity-0 transform -translate-y-2"
+                     x-transition:enter-end="opacity-100 transform translate-y-0"
+                     x-transition:leave="transition ease-in duration-150"
+                     x-transition:leave-start="opacity-100 transform translate-y-0"
+                     x-transition:leave-end="opacity-0 transform -translate-y-2"
+                     class="absolute top-16 left-0 right-0 bg-white shadow-lg border-t border-gray-100 z-40">
+                    <ul class="py-2 space-y-1">
+                        @foreach ($navLinks as $link)
+                            <li>
+                                <a href="{{ url($link['route']) }}"
+                                   @click="open = false"
+                                   class="{{ request()->is($link['match']) ? 'bg-morocco-red/10 text-morocco-red border-r-2 border-morocco-red' : 'text-gray-600 hover:bg-gray-50 hover:text-morocco-blue' }} block pl-4 pr-4 py-3 text-base font-medium transition-all duration-200">
+                                    {{ $link['label'] }}
+                                </a>
+                            </li>
+                        @endforeach
+                        
+                        <!-- Mobile Auth Links -->
+                        @guest
+                            <li class="border-t border-gray-100 pt-2 mt-2">
+                                <a href="{{ route('login') }}"
+                                   @click="open = false"
+                                   class="block pl-4 pr-4 py-3 text-base font-medium text-morocco-blue hover:bg-gray-50 transition-all duration-200">
+                                    Login
+                                </a>
+                            </li>
+                            @if (Route::has('register'))
+                                <li>
+                                    <a href="{{ route('register') }}"
+                                       @click="open = false"
+                                       class="block pl-4 pr-4 py-3 text-base font-medium text-white bg-morocco-red hover:bg-morocco-blue transition-all duration-200">
+                                        Register
+                                    </a>
+                                </li>
+                            @endif
+                        @else
+                            <li class="border-t border-gray-100 pt-2 mt-2">
+                                <a href="{{ route('profile.show') }}"
+                                   @click="open = false"
+                                   class="flex items-center pl-4 pr-4 py-3 text-base font-medium text-gray-700 hover:bg-gray-50 transition-all duration-200">
+                                    <svg class="h-5 w-5 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                    </svg>
+                                    Profile
+                                </a>
+                            </li>
+                            <li>
+                                <a href="{{ url('/orders') }}"
+                                   @click="open = false"
+                                   class="flex items-center pl-4 pr-4 py-3 text-base font-medium text-gray-700 hover:bg-gray-50 transition-all duration-200">
+                                    <svg class="h-5 w-5 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                                    </svg>
+                                    My Orders
+                                </a>
+                            </li>
+                            <li>
+                                <a href="{{ route('logout') }}"
+                                   onclick="event.preventDefault(); document.getElementById('mobile-logout-form').submit();"
+                                   @click="open = false"
+                                   class="flex items-center pl-4 pr-4 py-3 text-base font-medium text-red-600 hover:bg-red-50 transition-all duration-200">
+                                    <svg class="h-5 w-5 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                                    </svg>
+                                    Logout
+                                </a>
+                                <form id="mobile-logout-form" action="{{ route('logout') }}" method="POST" class="hidden">
+                                    @csrf
+                                </form>
+                            </li>
+                        @endguest
+                    </ul>
+                </div>
+            </div>
         </div>
     </div>
 </nav>
