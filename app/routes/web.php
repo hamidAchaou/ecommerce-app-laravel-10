@@ -61,8 +61,12 @@ Route::get('/about', [HomeController::class, 'about'])->name('about');
 Route::middleware('auth')->group(function () {
     Route::get('/checkout', [CheckoutController::class, 'index'])->name('checkout.index');
     Route::post('/checkout', [CheckoutController::class, 'process'])->name('checkout.process');
+    
+    // Display payment page
+    Route::get('/payment', [CheckoutController::class, 'payment'])->name('payment.index');
+    // Process payment
+    Route::post('/payment', [CheckoutController::class, 'processPayment'])->name('payment.process');
 });
-
 
 // ✅ Admin routes
 require __DIR__ . '/admin.php';

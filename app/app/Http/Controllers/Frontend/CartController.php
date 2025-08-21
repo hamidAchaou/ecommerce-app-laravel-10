@@ -4,12 +4,16 @@ namespace App\Http\Controllers\Frontend;
 
 use App\Http\Controllers\Controller;
 use App\Repositories\admin\ProductRepository;
+use App\Traits\CartManagement;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Session;
+use Illuminate\Support\Facades\Log;
 
 class CartController extends Controller
 {
+    use CartManagement;
+
     protected ProductRepository $productRepo;
 
     public function __construct(ProductRepository $productRepo)
@@ -22,14 +26,14 @@ class CartController extends Controller
      */
     public function index(Request $request)
     {
-        $cartItems = $this->getCartItems();
-        $subtotal = $cartItems->sum(fn($item) => $item['price'] * $item['quantity']);
+        $cartItems = $this->getCartItems($request);
+        $subtotal = $this->calculateCartTotal($cartItems);
 
         if ($request->wantsJson()) {
             return response()->json([
                 'cartItems' => $cartItems->values(),
                 'subtotal'  => $subtotal,
-                'count'     => $cartItems->count(),
+                'count'     => $this->getCartCount($cartItems),
             ]);
         }
 
@@ -43,11 +47,21 @@ class CartController extends Controller
     {
         $request->validate([
             'product_id' => 'required|exists:products,id',
-            'quantity'   => 'required|integer|min:1',
+            'quantity'   => 'required|integer|min:1|max:99',
         ]);
 
-        $product = $this->productRepo->find($request->product_id);
+        $productId = (int) $request->product_id;
         $quantity = (int) $request->quantity;
+
+        // Log the incoming request for debugging
+        Log::info('Adding to cart', [
+            'product_id' => $productId,
+            'quantity' => $quantity,
+            'user_id' => auth()->id(),
+            'session_id' => $request->session()->getId()
+        ]);
+
+        $product = $this->productRepo->find($productId);
 
         if (!$product) {
             return response()->json([
@@ -57,40 +71,59 @@ class CartController extends Controller
 
         if ($user = auth()->user()) {
             // Handle authenticated user cart
-            $cart = $user->cart()->firstOrCreate(['client_id' => $user->id]);
+            try {
+                DB::beginTransaction();
+                
+                $cart = $user->cart()->firstOrCreate(['client_id' => $user->id]);
+                $existingItem = $cart->cartItems()->where('product_id', $productId)->first();
 
-            $existingItem = $cart->cartItems()->where('product_id', $product->id)->first();
+                if ($existingItem) {
+                    $newQuantity = $existingItem->quantity + $quantity;
+                    $existingItem->update(['quantity' => min($newQuantity, 99)]); // Cap at 99
+                } else {
+                    $cart->cartItems()->create([
+                        'product_id' => $productId,
+                        'quantity' => min($quantity, 99)
+                    ]);
+                }
 
-            if ($existingItem) {
-                $existingItem->update([
-                    'quantity' => $existingItem->quantity + $quantity
-                ]);
-            } else {
-                $cart->cartItems()->create([
-                    'product_id' => $product->id,
-                    'quantity' => $quantity
-                ]);
+                $cartCount = $cart->cartItems()->sum('quantity');
+                
+                DB::commit();
+            } catch (\Exception $e) {
+                DB::rollBack();
+                Log::error('Error adding to database cart', ['error' => $e->getMessage()]);
+                return response()->json(['message' => 'Failed to add item to cart'], 500);
             }
-
-            $cartCount = $cart->cartItems()->sum('quantity');
         } else {
             // Handle session-based cart for guests
-            $cart = Session::get('cart', []);
+            try {
+                $cart = $request->session()->get('cart', []);
+                
+                Log::info('Current session cart', ['cart' => $cart]);
 
-            if (isset($cart[$product->id])) {
-                $cart[$product->id]['quantity'] += $quantity;
-            } else {
-                $cart[$product->id] = [
-                    'id' => $product->id,
-                    'title' => $product->title,
-                    'price' => $product->price,
-                    'quantity' => $quantity,
-                    'image' => $product->mainImageUrl(),
-                ];
+                if (isset($cart[$productId])) {
+                    $cart[$productId]['quantity'] = min($cart[$productId]['quantity'] + $quantity, 99);
+                } else {
+                    $cart[$productId] = [
+                        'id' => $productId,
+                        'title' => $product->title,
+                        'price' => (float) $product->price,
+                        'quantity' => min($quantity, 99),
+                        'image' => $product->mainImageUrl(),
+                    ];
+                }
+
+                $request->session()->put('cart', $cart);
+                $request->session()->save(); // Force session save
+                
+                Log::info('Updated session cart', ['cart' => $cart]);
+                
+                $cartCount = array_sum(array_column($cart, 'quantity'));
+            } catch (\Exception $e) {
+                Log::error('Error adding to session cart', ['error' => $e->getMessage()]);
+                return response()->json(['message' => 'Failed to add item to cart'], 500);
             }
-
-            Session::put('cart', $cart);
-            $cartCount = array_sum(array_column($cart, 'quantity'));
         }
 
         return response()->json([
@@ -99,7 +132,7 @@ class CartController extends Controller
             'product' => [
                 'id' => $product->id,
                 'title' => $product->title,
-                'price' => $product->price
+                'price' => (float) $product->price
             ]
         ]);
     }
@@ -109,7 +142,7 @@ class CartController extends Controller
      */
     public function update(Request $request, int $id)
     {
-        $request->validate(['quantity' => 'required|integer|min:1']);
+        $request->validate(['quantity' => 'required|integer|min:1|max:99']);
         $quantity = (int) $request->quantity;
 
         if ($user = auth()->user()) {
@@ -120,10 +153,11 @@ class CartController extends Controller
                 return response()->json(['message' => 'Item not found in cart'], 404);
             }
         } else {
-            $cart = Session::get('cart', []);
+            $cart = $request->session()->get('cart', []);
             if (isset($cart[$id])) {
                 $cart[$id]['quantity'] = $quantity;
-                Session::put('cart', $cart);
+                $request->session()->put('cart', $cart);
+                $request->session()->save();
             } else {
                 return response()->json(['message' => 'Item not found in cart'], 404);
             }
@@ -146,51 +180,24 @@ class CartController extends Controller
                 }
             }
         } else {
-            $cart = Session::get('cart', []);
+            $cart = $request->session()->get('cart', []);
             if (!isset($cart[$id])) {
                 return response()->json(['message' => 'Item not found in cart'], 404);
             }
             unset($cart[$id]);
-            Session::put('cart', $cart);
+            $request->session()->put('cart', $cart);
+            $request->session()->save();
         }
 
         return response()->json(['message' => 'Item removed successfully!']);
     }
 
     /**
-     * Clear all.
-     */
-    public function clear()
-    {
-        if ($user = auth()->user()) {
-            $cart = $user->cart()->first();
-            if ($cart) {
-                $cart->cartItems()->delete();
-            }
-        } else {
-            Session::forget('cart');
-        }
-
-        return response()->json(['message' => 'Cart cleared successfully']);
-    }
-
-    /**
      * Clear all items from the cart.
-     * For authenticated users, it clears the database cart.
-     * For guests, it clears the session cart.
      */
     public function clearAll(Request $request)
     {
-        if ($user = $request->user()) {
-            // Authenticated user → delete cart items via Eloquent
-            $cart = $user->cart()->first();
-            if ($cart) {
-                $cart->cartItems()->delete();
-            }
-        } else {
-            // Guest user → clear session
-            $request->session()->forget('cart');
-        }
+        $this->clearCart($request);
     
         return response()->json([
             'message' => 'Cart cleared successfully'
@@ -200,10 +207,10 @@ class CartController extends Controller
     /**
      * Get cart items count (useful for AJAX calls)
      */
-    public function count()
+    public function count(Request $request)
     {
-        $cartItems = $this->getCartItems();
-        $count = $cartItems->sum('quantity');
+        $cartItems = $this->getCartItems($request);
+        $count = $this->getCartCount($cartItems);
 
         return response()->json(['count' => $count]);
     }
@@ -211,93 +218,46 @@ class CartController extends Controller
     /**
      * Merge session cart with user cart on login
      */
-    public function mergeCarts()
+    public function mergeCarts(Request $request)
     {
         if (!auth()->check()) {
             return response()->json(['message' => 'User not authenticated'], 401);
         }
 
-        $sessionCart = collect(Session::get('cart', []));
+        $sessionCart = collect($request->session()->get('cart', []));
 
         if ($sessionCart->isNotEmpty()) {
-            $user = auth()->user();
-            $userCart = $user->cart()->firstOrCreate(['client_id' => $user->id]);
+            try {
+                DB::beginTransaction();
+                
+                $user = auth()->user();
+                $userCart = $user->cart()->firstOrCreate(['client_id' => $user->id]);
 
-            foreach ($sessionCart as $item) {
-                $existingItem = $userCart->cartItems()->where('product_id', $item['id'])->first();
-
-                if ($existingItem) {
-                    $existingItem->update([
-                        'quantity' => $existingItem->quantity + $item['quantity']
-                    ]);
-                } else {
-                    $userCart->cartItems()->create([
-                        'product_id' => $item['id'],
-                        'quantity' => $item['quantity']
-                    ]);
-                }
-            }
-
-            Session::forget('cart');
-        }
-
-        return response()->json(['message' => 'Carts merged successfully']);
-    }
-
-    /**
-     * Merge and get items.
-     */
-    protected function getCartItems()
-    {
-        if ($user = auth()->user()) {
-            // For authenticated users, merge session cart if exists, then return DB cart
-            $sessionCart = collect(Session::get('cart', []));
-            $userCart = $user->cart()->firstOrCreate(['client_id' => $user->id]);
-
-            // Merge session cart into user cart if session cart exists
-            if ($sessionCart->isNotEmpty()) {
                 foreach ($sessionCart as $item) {
                     $existingItem = $userCart->cartItems()->where('product_id', $item['id'])->first();
 
                     if ($existingItem) {
-                        $existingItem->update([
-                            'quantity' => $existingItem->quantity + $item['quantity']
-                        ]);
+                        $newQuantity = min($existingItem->quantity + $item['quantity'], 99);
+                        $existingItem->update(['quantity' => $newQuantity]);
                     } else {
                         $userCart->cartItems()->create([
                             'product_id' => $item['id'],
-                            'quantity' => $item['quantity']
+                            'quantity' => min($item['quantity'], 99)
                         ]);
                     }
                 }
-                Session::forget('cart');
+
+                $request->session()->forget('cart');
+                $request->session()->save();
+                
+                DB::commit();
+            } catch (\Exception $e) {
+                DB::rollBack();
+                Log::error('Error merging carts', ['error' => $e->getMessage()]);
+                return response()->json(['message' => 'Failed to merge carts'], 500);
             }
-
-            // Return items from database
-            $dbCartItems = $userCart->cartItems()->with('product.images')->get();
-
-            return $dbCartItems->map(fn($item) => [
-                'id' => $item->product_id,
-                'title' => $item->product->title,
-                'price' => (float) $item->product->price,
-                'quantity' => (int) $item->quantity,
-                'image' => $item->product->mainImageUrl(),
-            ]);
-        } else {
-            // For guests, return session cart
-            $sessionCart = collect(Session::get('cart', []));
-
-            return $sessionCart->map(function ($item) {
-                $product = \App\Models\Product::with('images')->find($item['id']);
-
-                return [
-                    'id' => (int) $item['id'],
-                    'title' => $item['title'],
-                    'price' => (float) $item['price'],
-                    'quantity' => (int) $item['quantity'],
-                    'image' => $product ? $product->mainImageUrl() : asset('images/placeholders/product-placeholder.png'),
-                ];
-            });
         }
+
+        return response()->json(['message' => 'Carts merged successfully']);
     }
 }
