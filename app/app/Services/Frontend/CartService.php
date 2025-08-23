@@ -3,6 +3,7 @@
 namespace App\Services\Frontend;
 
 use App\Repositories\Frontend\CartRepository;
+use Illuminate\Support\Collection;
 
 class CartService
 {
@@ -15,9 +16,28 @@ class CartService
         $this->userId = auth()->id();
     }
 
+    /**
+     * Get all cart items as a Collection
+     */
+    public function getItems(): Collection
+    {
+        return $this->cartRepo->getItems($this->userId);
+    }
+
+    /**
+     * Get total price of items
+     */
+    public function getTotal(): float
+    {
+        return $this->getItems()->sum(fn($item) => $item['price'] * $item['quantity']);
+    }
+
+    /**
+     * Get summary of cart
+     */
     public function getCartSummary(): array
     {
-        $items = $this->cartRepo->getItems($this->userId);
+        $items = $this->getItems();
         $total = $items->sum(fn($i) => $i['price'] * $i['quantity']);
         $count = $items->sum(fn($i) => $i['quantity']);
 
@@ -27,7 +47,7 @@ class CartService
             'total'           => $total,
             'formatted_total' => '$' . number_format($total, 2),
             'is_empty'        => $items->isEmpty(),
-        ];        
+        ];
     }
 
     public function addToCart(int $productId, int $quantity): void

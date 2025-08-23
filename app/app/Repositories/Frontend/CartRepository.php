@@ -134,4 +134,10 @@ class CartRepository extends BaseRepository
             session()->forget('cart');
         }
     }
+
+    public function getTotal(?int $userId = null): float
+    {
+        $items = $this->getItems($userId);
+        return $items->sum(fn($item) => $item['price'] * $item['quantity']);
+    }
 }
