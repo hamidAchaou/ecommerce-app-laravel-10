@@ -18,8 +18,8 @@ class CartController extends Controller
     
         if ($request->wantsJson()) {
             return response()->json([
-                'cartItems' => $summary['items'],   // 👈 match Alpine expectation
-                'subtotal'  => $summary['total'],   // 👈 subtotal = total (since shipping free)
+                'cartItems' => $summary['items'],
+                'subtotal'  => $summary['total'],
                 'count'     => $summary['count'],
             ]);
         }
@@ -45,7 +45,7 @@ class CartController extends Controller
     
         return response()->json([
             'message'    => 'Product added to cart successfully!',
-            'cartItems'  => $summary['items'],   // 👈 return items too
+            'cartItems'  => $summary['items'],
             'subtotal'   => $summary['total'],
             'count'      => $summary['count'],
         ]);
