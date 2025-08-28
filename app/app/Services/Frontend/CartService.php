@@ -7,37 +7,42 @@ use Illuminate\Support\Collection;
 
 class CartService
 {
-    protected CartRepository $cartRepo;
-    protected ?int $userId;
+    public function __construct(
+        protected CartRepository $cartRepo
+    ) {}
 
-    public function __construct(CartRepository $cartRepo)
+    /**
+     * Get current authenticated user id (if any).
+     */
+    protected function userId(): ?int
     {
-        $this->cartRepo = $cartRepo;
-        $this->userId = auth()->id();
+        return auth()->id();
     }
 
     /**
-     * Get all cart items as a Collection
+     * Get all cart items for the current user/session.
      */
     public function getItems(): Collection
     {
-        return $this->cartRepo->getItems($this->userId);
+        return $this->cartRepo->getItems($this->userId());
     }
 
     /**
-     * Get total price of items
+     * Calculate the cart total price.
      */
     public function getTotal(): float
     {
-        return $this->getItems()->sum(fn($item) => $item['price'] * $item['quantity']);
+        return $this->getItems()
+            ->sum(fn($item) => $item['price'] * $item['quantity']);
     }
 
     /**
-     * Get summary of cart
+     * Provide a summary of the cart (items, count, total, etc).
      */
     public function getCartSummary(): array
     {
         $items = $this->getItems();
+
         $total = $items->sum(fn($i) => $i['price'] * $i['quantity']);
         $count = $items->sum(fn($i) => $i['quantity']);
 
@@ -45,28 +50,48 @@ class CartService
             'items'           => $items->values(),
             'count'           => $count,
             'total'           => $total,
-            'formatted_total' => '$' . number_format($total, 2),
+            'formatted_total' => $this->formatPrice($total),
             'is_empty'        => $items->isEmpty(),
         ];
     }
 
+    /**
+     * Add a product to the cart.
+     */
     public function addToCart(int $productId, int $quantity): void
     {
-        $this->cartRepo->addItem($productId, $quantity, $this->userId);
+        $this->cartRepo->addItem($productId, $quantity, $this->userId());
     }
 
+    /**
+     * Update a product quantity in the cart.
+     */
     public function updateCartItem(int $productId, int $quantity): void
     {
-        $this->cartRepo->updateItem($productId, $quantity, $this->userId);
+        $this->cartRepo->updateItem($productId, $quantity, $this->userId());
     }
 
+    /**
+     * Remove a product from the cart.
+     */
     public function removeCartItem(int $productId): void
     {
-        $this->cartRepo->removeItem($productId, $this->userId);
+        $this->cartRepo->removeItem($productId, $this->userId());
     }
 
+    /**
+     * Clear all items from the cart.
+     */
     public function clearCart(): void
     {
-        $this->cartRepo->clear($this->userId);
+        $this->cartRepo->clear($this->userId());
+    }
+
+    /**
+     * Format a float price into currency.
+     */
+    protected function formatPrice(float $amount): string
+    {
+        return '$' . number_format($amount, 2);
     }
 }

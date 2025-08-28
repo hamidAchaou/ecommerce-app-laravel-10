@@ -8,14 +8,12 @@ use Illuminate\Http\Request;
 
 class CartController extends Controller
 {
-    public function __construct(
-        protected CartService $cartService
-    ) {}
+    public function __construct(protected CartService $cartService) {}
 
     public function index(Request $request)
     {
         $summary = $this->cartService->getCartSummary();
-    
+
         if ($request->wantsJson()) {
             return response()->json([
                 'cartItems' => $summary['items'],
@@ -23,33 +21,31 @@ class CartController extends Controller
                 'count'     => $summary['count'],
             ]);
         }
-    
-        // Blade still works fine
+
         return view('frontend.cart.index', [
             'cartItems' => $summary['items'],
             'subtotal'  => $summary['total'],
         ]);
     }
-    
 
     public function store(Request $request)
     {
-        $request->validate([
+        $data = $request->validate([
             'product_id' => 'required|exists:products,id',
             'quantity'   => 'required|integer|min:1|max:99',
         ]);
-    
-        $this->cartService->addToCart($request->product_id, $request->quantity);
-    
+
+        $this->cartService->addToCart($data['product_id'], $data['quantity']);
+
         $summary = $this->cartService->getCartSummary();
-    
+
         return response()->json([
             'message'    => 'Product added to cart successfully!',
             'cartItems'  => $summary['items'],
             'subtotal'   => $summary['total'],
             'count'      => $summary['count'],
         ]);
-    }    
+    }
 
     public function update(Request $request, int $id)
     {

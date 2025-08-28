@@ -6,6 +6,7 @@ use App\Models\Client;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Support\Str;
 
 class ClientService
 {
@@ -19,6 +20,24 @@ class ClientService
         return Auth::check() ? Auth::user() : null;
     }
 
+    public function saveClientInfo(array $data, ?Client $client = null): Client
+    {
+        try {
+            if (!$client) {
+                $client = new Client();
+                $client->id = (string) Str::uuid(); // best practice for non-incrementing PK
+                $client->user_id = auth()->id();
+            }
+
+            $client->fill($data);
+            $client->save();
+
+            return $client;
+        } catch (\Exception $e) {
+            Log::error('Error saving client info', ['error' => $e->getMessage(), 'data' => $data]);
+            throw $e;
+        }
+    }
     /**
      * Find a client by ID.
      *

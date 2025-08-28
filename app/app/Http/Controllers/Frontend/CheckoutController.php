@@ -5,12 +5,17 @@ namespace App\Http\Controllers\Frontend;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Frontend\CheckoutRequest;
 use App\Services\Frontend\CheckoutService;
+use App\Services\Frontend\ClientService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\View\View;
 
 class CheckoutController extends Controller
 {
-    public function __construct(private CheckoutService $checkoutService) {}
+    public function __construct(
+        private CheckoutService $checkoutService,
+        private ClientService $clientService
+        ) {}
+        
 
     /**
      * Show checkout page
