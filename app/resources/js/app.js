@@ -7,7 +7,9 @@ import Choices from "choices.js";
 import Chart from 'chart.js/auto';
 import './pages/product';
 import './pages/cart';
+import checkout from './pages/checkout.js';
 
+Alpine.data('checkout', checkout);
 // ==================== Alpine ====================
 Alpine.plugin(collapse);
 window.Alpine = Alpine;

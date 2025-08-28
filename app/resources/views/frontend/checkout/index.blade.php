@@ -53,22 +53,33 @@
                         </div>
 
                         {{-- City + Country --}}
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div x-data="checkout()" x-init="init()" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {{-- Country --}}
                             <div>
-                                <label for="city" class="block text-sm font-medium text-gray-700">City</label>
-                                <input type="text" id="city" name="city" value="{{ old('city') }}"
-                                       class="mt-1 block w-full rounded-lg border-gray-300 focus:ring-morocco-red focus:border-morocco-red"
-                                       required>
-                                @error('city') <p class="text-red-600 text-sm mt-1">{{ $message }}</p> @enderror
+                                <label for="country_id">Country</label>
+                                <select id="country_id" name="country_id" x-model="selectedCountry"
+                                    class="mt-1 block w-full rounded-lg border-gray-300 focus:ring-morocco-red focus:border-morocco-red" required>
+                                    <option value="">-- Select Country --</option>
+                                    <template x-for="country in countries" :key="country.id">
+                                        <option :value="country.id" x-text="country.name"></option>
+                                    </template>
+                                </select>
                             </div>
+                        
+                            {{-- City --}}
                             <div>
-                                <label for="country" class="block text-sm font-medium text-gray-700">Country</label>
-                                <input type="text" id="country" name="country" value="{{ old('country') }}"
-                                       class="mt-1 block w-full rounded-lg border-gray-300 focus:ring-morocco-red focus:border-morocco-red"
-                                       required>
-                                @error('country') <p class="text-red-600 text-sm mt-1">{{ $message }}</p> @enderror
+                                <label for="city_id">City</label>
+                                <select id="city_id" name="city_id" x-model="selectedCity"
+                                    :disabled="!selectedCountry"
+                                    class="mt-1 block w-full rounded-lg border-gray-300 focus:ring-morocco-red focus:border-morocco-red" required>
+                                    <option value="">-- Select City --</option>
+                                    <template x-for="city in filteredCities" :key="city.id">
+                                        <option :value="city.id" x-text="city.name"></option>
+                                    </template>
+                                </select>
                             </div>
                         </div>
+                        
 
                         {{-- Notes --}}
                         <div>
@@ -159,4 +170,9 @@
         </div>
     </div>
 </section>
+<script>
+    window.countries = @json($countries);
+    window.oldCountryId = "{{ old('country_id') }}";
+    window.oldCityId = "{{ old('city_id') }}";
+</script>
 @endsection

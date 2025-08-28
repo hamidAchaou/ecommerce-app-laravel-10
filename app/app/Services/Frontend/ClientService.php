@@ -3,6 +3,7 @@
 namespace App\Services\Frontend;
 
 use App\Models\Client;
+use App\Models\Country;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
@@ -93,5 +94,12 @@ class ClientService
             Log::error('Error deleting client: ' . $e->getMessage(), ['id' => $id]);
             return false;
         }
+    }
+    public function getCountriesWithCities()
+    {
+        return Country::with('cities:id,name,country_id')
+                      ->select('id', 'name', 'code')
+                      ->orderBy('name')
+                      ->get();
     }
 }

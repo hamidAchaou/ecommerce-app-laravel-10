@@ -8,16 +8,18 @@ class ClientCheckoutRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return auth()->check(); // only authenticated users
+        return auth()->check();
     }
 
     public function rules(): array
     {
         return [
-            'phone' => 'required|string|max:15',
-            'address' => 'required|string|max:255',
-            'city_id' => 'required|exists:cities,id',
-            'country_id' => 'required|exists:countries,id',
+            'name'       => ['required', 'string', 'max:255'],
+            'phone'      => ['required', 'string', 'max:20'],
+            'address'    => ['required', 'string', 'max:500'],
+            'city_id'    => ['required', 'exists:cities,id'],
+            'country_id' => ['required', 'exists:countries,id'],
+            'notes'      => ['nullable', 'string', 'max:500'],
         ];
     }
 }
