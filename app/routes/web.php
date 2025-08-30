@@ -4,8 +4,9 @@ use App\Http\Controllers\Frontend\CartController;
 use App\Http\Controllers\Frontend\HomeController;
 use App\Http\Controllers\Frontend\ProductController;
 use App\Http\Controllers\Frontend\CategoryController;
-use App\Http\Controllers\frontend\CheckoutController;
+use App\Http\Controllers\Frontend\CheckoutController; // Fixed: Frontend with capital F
 use App\Http\Controllers\ProfileController;
+use Illuminate\Http\Request; // Fixed: Correct Laravel Request import
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -17,6 +18,7 @@ use Illuminate\Support\Facades\Route;
 Route::get('/welcome', function () {
     return view('welcome');
 })->name('welcome');
+
 // Public pages
 Route::get('/', [HomeController::class, 'index'])->name('home');
 Route::view('/about', 'frontend.about')->name('about');
@@ -61,11 +63,25 @@ Route::get('/about', [HomeController::class, 'about'])->name('about');
 Route::middleware('auth')->group(function () {
     Route::get('/checkout', [CheckoutController::class, 'index'])->name('checkout.index');
     Route::post('/checkout', [CheckoutController::class, 'process'])->name('checkout.process');
-    
+    Route::post('/checkout/stripe', [CheckoutController::class, 'stripeCheckout'])->name('checkout.stripe');
+    Route::get('/checkout/success', [CheckoutController::class, 'success'])->name('checkout.success');
     // Display payment page
     Route::get('/payment', [CheckoutController::class, 'payment'])->name('payment.index');
     // Process payment
     Route::post('/payment', [CheckoutController::class, 'processPayment'])->name('payment.process');
+});
+
+// Debug route - remove after fixing the issue
+Route::post('/debug/checkout', function(Request $request) {
+    return response()->json([
+        'auth_check' => auth()->check(),
+        'user_id' => auth()->id(),
+        'request_data' => $request->all(),
+        'stripe_config' => [
+            'key_exists' => !empty(config('stripe.key')),
+            'secret_exists' => !empty(config('stripe.secret')),
+        ]
+    ]);
 });
 
 // ✅ Admin routes

@@ -21,6 +21,34 @@ class ClientService
         return Auth::check() ? Auth::user() : null;
     }
 
+    public function getAuthenticatedClientAsClient(): ?Client
+    {
+        $user = auth()->user();
+        if (!$user) {
+            return null;
+        }
+
+        // If User has a related Client model:
+        if ($user->client) {
+            return $user->client;
+        }
+
+        // Or if User IS the Client (same table):
+        if ($user instanceof Client) {
+            return $user;
+        }
+
+        // Or create/find Client based on User:
+        return Client::firstOrCreate(
+            ['user_id' => $user->id],
+            [
+                'name' => $user->name,
+                'email' => $user->email,
+                // ... other fields
+            ]
+        );
+    }
+    
     public function saveClientInfo(array $data, ?Client $client = null): Client
     {
         try {
@@ -95,11 +123,19 @@ class ClientService
             return false;
         }
     }
+    // public function getCountriesWithCities()
+    // {
+    //     return Country::with('cities:id,name,country_id')
+    //                   ->select('id', 'name', 'code')
+    //                   ->orderBy('name')
+    //                   ->get();
+    // }
+        /**
+     * Get countries with their cities
+     */
     public function getCountriesWithCities()
     {
-        return Country::with('cities:id,name,country_id')
-                      ->select('id', 'name', 'code')
-                      ->orderBy('name')
-                      ->get();
+        // Assuming you have Country and City models
+        return \App\Models\Country::with('cities')->get();
     }
 }

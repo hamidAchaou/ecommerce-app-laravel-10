@@ -6,72 +6,60 @@
 @section('content')
 <section class="bg-morocco-ivory py-16">
     <div class="max-w-7xl mx-auto px-6">
-
         {{-- Page Header --}}
         <header class="text-center mb-12">
             <h1 class="text-4xl sm:text-5xl font-extrabold text-morocco-red leading-tight">Checkout</h1>
             <p class="mt-2 text-lg text-gray-700">Provide your details and review your order.</p>
         </header>
 
-        <div class="lg:flex lg:gap-12" x-data="cart()" x-init="init()">
-
-            {{-- Checkout Form + Cart Items --}}
+        {{-- Single Alpine Scope for entire checkout --}}
+        <div x-data="checkoutPage()" class="lg:flex lg:gap-12">
+            {{-- Checkout Form --}}
             <div class="lg:w-2/3 space-y-10">
-
-                {{-- Customer Information --}}
                 <div class="bg-white p-6 rounded-xl shadow">
                     <h2 class="text-2xl font-bold text-gray-900 mb-4">Shipping Information</h2>
-
-                    <form id="checkout-form" action="{{ route('checkout.process') }}" method="POST" class="space-y-5">
+                    <form id="checkout-form" class="space-y-5">
                         @csrf
-
                         {{-- Full Name --}}
                         <div>
                             <label for="name" class="block text-sm font-medium text-gray-700">Full Name</label>
                             <input type="text" id="name" name="name" value="{{ old('name', auth()->user()?->name) }}"
                                    class="mt-1 block w-full rounded-lg border-gray-300 focus:ring-morocco-red focus:border-morocco-red"
                                    required>
-                            @error('name') <p class="text-red-600 text-sm mt-1">{{ $message }}</p> @enderror
                         </div>
-
                         {{-- Phone --}}
                         <div>
                             <label for="phone" class="block text-sm font-medium text-gray-700">Phone Number</label>
                             <input type="text" id="phone" name="phone" value="{{ old('phone') }}"
                                    class="mt-1 block w-full rounded-lg border-gray-300 focus:ring-morocco-red focus:border-morocco-red"
                                    required>
-                            @error('phone') <p class="text-red-600 text-sm mt-1">{{ $message }}</p> @enderror
                         </div>
-
                         {{-- Address --}}
                         <div>
                             <label for="address" class="block text-sm font-medium text-gray-700">Address</label>
                             <textarea id="address" name="address" rows="3"
                                       class="mt-1 block w-full rounded-lg border-gray-300 focus:ring-morocco-red focus:border-morocco-red"
                                       required>{{ old('address') }}</textarea>
-                            @error('address') <p class="text-red-600 text-sm mt-1">{{ $message }}</p> @enderror
                         </div>
-
-                        {{-- City + Country --}}
-                        <div x-data="checkout()" x-init="init()" class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            {{-- Country --}}
+                        {{-- Country + City --}}
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
                                 <label for="country_id">Country</label>
                                 <select id="country_id" name="country_id" x-model="selectedCountry"
-                                    class="mt-1 block w-full rounded-lg border-gray-300 focus:ring-morocco-red focus:border-morocco-red" required>
+                                        class="mt-1 block w-full rounded-lg border-gray-300 focus:ring-morocco-red focus:border-morocco-red"
+                                        required>
                                     <option value="">-- Select Country --</option>
                                     <template x-for="country in countries" :key="country.id">
                                         <option :value="country.id" x-text="country.name"></option>
                                     </template>
                                 </select>
                             </div>
-                        
-                            {{-- City --}}
                             <div>
                                 <label for="city_id">City</label>
                                 <select id="city_id" name="city_id" x-model="selectedCity"
-                                    :disabled="!selectedCountry"
-                                    class="mt-1 block w-full rounded-lg border-gray-300 focus:ring-morocco-red focus:border-morocco-red" required>
+                                        :disabled="!selectedCountry"
+                                        class="mt-1 block w-full rounded-lg border-gray-300 focus:ring-morocco-red focus:border-morocco-red"
+                                        required>
                                     <option value="">-- Select City --</option>
                                     <template x-for="city in filteredCities" :key="city.id">
                                         <option :value="city.id" x-text="city.name"></option>
@@ -79,8 +67,6 @@
                                 </select>
                             </div>
                         </div>
-                        
-
                         {{-- Notes --}}
                         <div>
                             <label for="notes" class="block text-sm font-medium text-gray-700">Order Notes (optional)</label>
@@ -111,7 +97,6 @@
                             </template>
                         </div>
                     </template>
-
                     <template x-if="cartItems.length === 0">
                         <div class="text-center py-16">
                             <div class="mx-auto w-24 h-24 flex items-center justify-center rounded-full bg-gray-100 mb-6">
@@ -122,10 +107,9 @@
                             </div>
                             <h2 class="text-2xl font-semibold text-gray-700">Your cart is empty</h2>
                             <p class="mt-2 text-gray-500">Browse our products and find something you love.</p>
-                            <a href="{{ route('products.index') }}"
-                               class="mt-6 inline-block px-6 py-3 bg-morocco-red text-white font-semibold rounded-xl shadow hover:bg-red-700 transition">
+                            <x-frontend.button.button-primary :href="route('products.index')">
                                 Continue Shopping
-                            </a>
+                            </x-frontend.button.button-primary>
                         </div>
                     </template>
                 </div>
@@ -134,7 +118,6 @@
             {{-- Order Summary --}}
             <aside class="lg:w-1/3 mt-6 lg:mt-0 bg-white rounded-xl shadow p-6 h-fit">
                 <h2 class="text-2xl font-bold text-gray-900 mb-4">Order Summary</h2>
-
                 <div class="space-y-3">
                     <div class="flex justify-between text-gray-700">
                         <span>Subtotal</span>
@@ -149,30 +132,143 @@
                         <span x-text="'$' + getCartTotal().toFixed(2)"></span>
                     </div>
                 </div>
-
                 <div class="mt-6 space-y-3">
-                    <button type="submit" form="checkout-form"
-                            class="block text-center w-full px-4 py-3 bg-morocco-red text-white font-semibold rounded-xl shadow hover:bg-morocco-blue transition">
-                        Confirm & Place Order
-                    </button>
+                    {{-- Stripe Payment Button --}}
+                    <x-frontend.button.button-primary
+                        type="button"
+                        @click="payWithStripe()"
+                        class="w-full">
+                        Pay with Stripe
+                    </x-frontend.button.button-primary>
                     <button @click="clearCart()"
                             class="w-full py-3 bg-red-600 text-white font-semibold rounded-xl hover:bg-red-700 transition"
                             x-show="cartItems.length > 0">
                         Clear Cart
                     </button>
-                    <a href="{{ route('products.index') }}" 
-                       class="block text-center w-full px-4 py-3 border-2 border-morocco-red text-morocco-red font-semibold rounded-xl hover:bg-morocco-red hover:text-white transition">
+                    <x-frontend.button.button-primary :href="route('products.index')" class="w-full bg-white text-red-600 border-red-600 hover:bg-red-600 hover:text-white">
                         Continue Shopping
-                    </a>
+                    </x-frontend.button.button-primary>
                 </div>
             </aside>
-
         </div>
     </div>
 </section>
+
+<script src="https://js.stripe.com/v3/"></script>
 <script>
-    window.countries = @json($countries);
-    window.oldCountryId = "{{ old('country_id') }}";
-    window.oldCityId = "{{ old('city_id') }}";
+    // Combined checkout page Alpine component
+    function checkoutPage() {
+        return {
+            // Cart functionality
+            cartItems: @json($cartItems),
+            
+            // Checkout functionality  
+            countries: @json($countries),
+            selectedCountry: "{{ old('country_id') }}",
+            selectedCity: "{{ old('city_id') }}",
+            
+            // Computed properties
+            get filteredCities() {
+                const country = this.countries.find(c => c.id == this.selectedCountry);
+                return country ? country.cities : [];
+            },
+            
+            // Cart methods
+            getCartTotal() {
+                return this.cartItems.reduce((acc, item) => acc + item.price * item.quantity, 0);
+            },
+            
+            async clearCart() {
+                try {
+                    const response = await fetch('/cart/clear/all', {
+                        method: 'DELETE',
+                        headers: {
+                            'Accept': 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest',
+                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                        }
+                    });
+
+                    if (response.ok) {
+                        this.cartItems = [];
+                        this.showNotification('Cart cleared successfully!', 'success');
+                    } else {
+                        const data = await response.json();
+                        throw new Error(data.message || 'Failed to clear cart');
+                    }
+                } catch (error) {
+                    console.error('Error clearing cart:', error);
+                    this.showNotification(error.message || 'Failed to clear cart', 'error');
+                }
+            },
+            
+            // Payment method
+            async payWithStripe() {
+                // Validate form first
+                const form = document.getElementById('checkout-form');
+                if (!form.checkValidity()) {
+                    form.reportValidity();
+                    return;
+                }
+                
+                // Check if cart is empty
+                if (this.cartItems.length === 0) {
+                    this.showNotification('Your cart is empty', 'error');
+                    return;
+                }
+                
+                try {
+                    const response = await fetch("{{ route('checkout.stripe') }}", {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                            "X-CSRF-TOKEN": "{{ csrf_token() }}"
+                        },
+                        body: JSON.stringify({
+                            name: document.getElementById('name').value,
+                            phone: document.getElementById('phone').value,
+                            address: document.getElementById('address').value,
+                            country_id: document.getElementById('country_id').value,
+                            city_id: document.getElementById('city_id').value,
+                            notes: document.getElementById('notes').value
+                        })
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if(data.error) {
+                        this.showNotification(data.error, 'error');
+                    } else {
+                        const stripe = Stripe("{{ config('stripe.key') }}");
+                        stripe.redirectToCheckout({ sessionId: data.id });
+                    }
+                } catch (error) {
+                    console.error('Payment error:', error);
+                    this.showNotification('Payment processing failed. Please try again.', 'error');
+                }
+            },
+            
+            // Utility methods
+            showNotification(message, type = 'info') {
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        toast: true,
+                        position: 'top-end',
+                        icon: type,
+                        title: message,
+                        showConfirmButton: false,
+                        timer: 3000,
+                        timerProgressBar: true,
+                        didOpen: (toast) => {
+                            toast.addEventListener('mouseenter', Swal.stopTimer);
+                            toast.addEventListener('mouseleave', Swal.resumeTimer);
+                        }
+                    });
+                } else {
+                    alert(message);
+                }
+            }
+        }
+    }
 </script>
 @endsection
