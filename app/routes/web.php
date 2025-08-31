@@ -71,6 +71,9 @@ Route::middleware('auth')->group(function () {
     Route::post('/payment', [CheckoutController::class, 'processPayment'])->name('payment.process');
 });
 
+// Stripe webhook (should be outside auth middleware)
+Route::post('/stripe/webhook', [CheckoutController::class, 'stripeWebhook'])->name('stripe.webhook');
+
 // Debug route - remove after fixing the issue
 Route::post('/debug/checkout', function(Request $request) {
     return response()->json([

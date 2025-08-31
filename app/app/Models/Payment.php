@@ -12,14 +12,20 @@ class Payment extends Model
 
     protected $fillable = [
         'id',
-        'method',
-        'status',
+        'stripe_session_id',
+        'stripe_payment_intent_id',
         'amount',
-        'transaction_id',
+        'currency',
+        'status',
+        'payment_method',
+    ];
+
+    protected $casts = [
+        'amount' => 'decimal:2',
     ];
 
     /**
-     * Get the order associated with the payment.
+     * Get the order for this payment.
      */
     public function order()
     {

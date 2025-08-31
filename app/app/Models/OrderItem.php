@@ -16,10 +16,17 @@ class OrderItem extends Model
         'product_id',
         'quantity',
         'price',
+        'total',
+    ];
+
+    protected $casts = [
+        'quantity' => 'integer',
+        'price' => 'decimal:2',
+        'total' => 'decimal:2',
     ];
 
     /**
-     * Get the order that contains the item.
+     * Get the order this item belongs to.
      */
     public function order()
     {
@@ -27,7 +34,7 @@ class OrderItem extends Model
     }
 
     /**
-     * Get the product in the order item.
+     * Get the product for this order item.
      */
     public function product()
     {

@@ -10,11 +10,18 @@ return new class extends Migration
     {
         Schema::create('payments', function (Blueprint $table) {
             $table->uuid('id')->primary();
-            $table->string('method');
-            $table->enum('status', ['pending', 'completed', 'failed'])->default('pending');
+            $table->string('stripe_session_id')->unique()->nullable();
+            $table->string('stripe_payment_intent_id')->nullable();
             $table->decimal('amount', 10, 2);
-            $table->string('transaction_id')->nullable();
+            $table->string('currency', 3)->default('usd');
+            $table->enum('status', ['pending', 'completed', 'failed', 'cancelled'])->default('pending');
+            $table->string('payment_method')->default('stripe');
+            $table->json('payment_data')->nullable(); // Store additional payment info
             $table->timestamps();
+
+            $table->index(['stripe_session_id']);
+            $table->index(['stripe_payment_intent_id']);
+            $table->index(['status']);
         });
     }
 
