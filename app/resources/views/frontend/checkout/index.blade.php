@@ -255,8 +255,6 @@
                             },
                             body: JSON.stringify(payload)
                         });
-
-                        console.log(payload);
                         
                         const data = await response.json();
                         if (data.error) {
