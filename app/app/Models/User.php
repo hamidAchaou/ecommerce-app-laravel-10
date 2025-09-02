@@ -48,11 +48,18 @@ class User extends Authenticatable
         return $this->hasOne(Cart::class, 'client_id', 'id');
     }
 
+    /**
+     * Get the client record associated with the user
+     */
+    public function client()
+    {
+        return $this->hasOne(Client::class, 'user_id', 'id');
+    }
+
     protected static function booted()
     {
         static::created(function ($user) {
             app(\App\Repositories\Frontend\ClientRepository::class)->create([
-                'id' => \Illuminate\Support\Str::uuid(),
                 'user_id' => $user->id,
             ]);
         });

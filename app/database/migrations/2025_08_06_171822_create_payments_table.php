@@ -9,12 +9,16 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('payments', function (Blueprint $table) {
-            $table->uuid('id')->primary();
-            $table->string('method');
-            $table->enum('status', ['pending', 'completed', 'failed'])->default('pending');
+            $table->id();
             $table->decimal('amount', 10, 2);
-            $table->string('transaction_id')->nullable();
+            $table->string('method'); // stripe, paypal, cash, etc.
+            $table->enum('status', ['pending', 'completed', 'failed', 'refunded'])->default('pending');
+            $table->string('transaction_id')->nullable(); // External payment gateway transaction ID
+            $table->json('metadata')->nullable(); // Store additional payment gateway data
             $table->timestamps();
+
+            $table->index(['status', 'method']);
+            $table->index('transaction_id');
         });
     }
 

@@ -5,14 +5,17 @@ namespace App\Services\Frontend;
 use App\Services\Frontend\CartService;
 use App\Services\Frontend\ClientService;
 use App\Services\Frontend\OrderService;
+use App\Services\Frontend\PaymentService;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Session;
 
 class CheckoutService
 {
     public function __construct(
         private CartService $cartService,
         private ClientService $clientService,
-        private OrderService $orderService
+        private OrderService $orderService,
+        private PaymentService $paymentService
     ) {}
 
     /**
@@ -30,11 +33,27 @@ class CheckoutService
     }
 
     /**
-     * Get authenticated user (changed from getClient to getUser)
+     * Get authenticated user
      */
     public function getUser()
     {
-        return auth()->user(); // Direct auth()->user() call
+        return auth()->user();
+    }
+
+    /**
+     * Get or create client for the authenticated user
+     */
+    private function getOrCreateClient(array $clientData)
+    {
+        $user = $this->getUser();
+        if (!$user) {
+            throw new \Exception("User must be logged in");
+        }
+
+        // Get existing client or create new one
+        $client = $this->clientService->getOrCreateClient($user, $clientData);
+        
+        return $client;
     }
 
     public function createStripeSession(array $data)
@@ -62,68 +81,74 @@ class CheckoutService
             // Set Stripe API key
             \Stripe\Stripe::setApiKey($stripeSecret);
 
-            // Prepare line items
-            $lineItems = $items->map(function ($item) {
-                // Validate item data
-                if (!isset($item['title']) || !isset($item['price']) || !isset($item['quantity'])) {
-                    throw new \Exception("Invalid cart item data");
-                }
+            // Calculate total
+            $totalAmount = $items->sum(fn($item) => $item['price'] * $item['quantity']);
 
+            // Store necessary data in session for webhook processing
+            $sessionData = [
+                'user_id' => $user->id,
+                'cart_items' => $items->toArray(),
+                'client_data' => [
+                    'name' => $data['name'],
+                    'phone' => $data['phone'],
+                    'address' => $data['address'],
+                    'country_id' => $data['country_id'],
+                    'city_id' => $data['city_id'],
+                    'notes' => $data['notes'] ?? null,
+                ],
+                'total_amount' => $totalAmount,
+                'created_at' => now()->timestamp
+            ];
+            
+            // Generate unique session key
+            $sessionKey = 'stripe_checkout_' . uniqid();
+            Session::put($sessionKey, $sessionData);
+
+            // Prepare line items for Stripe
+            $lineItems = $items->map(function ($item) {
                 $unitAmount = intval(floatval($item['price']) * 100); // Convert to cents
                 
                 if ($unitAmount <= 0) {
                     throw new \Exception("Invalid item price: " . $item['price']);
                 }
 
-                $productData = [
-                    'name' => $item['title'],
-                ];
-
-                // Only add description if it's not empty
-                if (!empty($item['description'])) {
-                    $productData['description'] = $item['description'];
-                }
-
                 return [
                     'price_data' => [
                         'currency' => 'usd',
-                        'product_data' => $productData,
+                        'product_data' => [
+                            'name' => $item['title'],
+                            'description' => $item['description'] ?? null,
+                        ],
                         'unit_amount' => $unitAmount,
                     ],
                     'quantity' => intval($item['quantity']),
                 ];
             })->toArray();
 
-            // Validate URLs
-            $successUrl = route('checkout.success');
-            $cancelUrl = route('checkout.index');
-
             // Create Stripe session
             $session = \Stripe\Checkout\Session::create([
                 'payment_method_types' => ['card'],
                 'line_items' => $lineItems,
                 'mode' => 'payment',
-                'success_url' => $successUrl,
-                'cancel_url' => $cancelUrl,
+                'success_url' => route('checkout.success') . '?session_id={CHECKOUT_SESSION_ID}',
+                'cancel_url' => route('checkout.index'),
                 'metadata' => [
-                    'user_id' => $user->id, // Changed from client_id to user_id
-                    'user_name' => $data['name'] ?? '',
-                    'user_phone' => $data['phone'] ?? '',
-                    'user_address' => $data['address'] ?? '',
-                    'country_id' => $data['country_id'] ?? '',
-                    'city_id' => $data['city_id'] ?? '',
-                    'notes' => $data['notes'] ?? '',
+                    'user_id' => $user->id,
+                    'session_key' => $sessionKey,
+                    'total_amount' => $totalAmount,
                 ],
                 'customer_email' => $user->email ?? null,
                 'billing_address_collection' => 'auto',
                 'shipping_address_collection' => [
-                    'allowed_countries' => ['US', 'CA', 'GB', 'FR', 'DE', 'MA'], // Add your supported countries
+                    'allowed_countries' => ['US', 'CA', 'GB', 'FR', 'DE', 'MA'],
                 ],
             ]);
 
             Log::info('Stripe session created successfully', [
                 'session_id' => $session->id,
-                'user_id' => $user->id
+                'user_id' => $user->id,
+                'session_key' => $sessionKey,
+                'total_amount' => $totalAmount
             ]);
 
             return $session;
@@ -148,7 +173,7 @@ class CheckoutService
     }
 
     /**
-     * Place order (updated to use User instead of Client)
+     * Place order directly (non-Stripe flow)
      */
     public function placeOrder(array $data)
     {
@@ -157,13 +182,33 @@ class CheckoutService
             throw new \Exception("User must be logged in to place an order");
         }
 
-        // Convert items Collection to array
         $items = $this->cartService->getItems()->toArray();
         
         if (empty($items)) {
             throw new \Exception("Cart is empty");
         }
 
-        return $this->orderService->createOrder($user, $items, $data);
+        // Create or update client information
+        $client = $this->getOrCreateClient([
+            'name' => $data['name'],
+            'phone' => $data['phone'],
+            'address' => $data['address'],
+            'country_id' => $data['country_id'],
+            'city_id' => $data['city_id'],
+            'notes' => $data['notes'] ?? null,
+        ]);
+
+        // Calculate total
+        $totalAmount = collect($items)->sum(fn($item) => $item['price'] * $item['quantity']);
+
+        // Create payment record
+        $payment = $this->paymentService->createPayment([
+            'amount' => $totalAmount,
+            'method' => 'pending', // or whatever default method
+            'status' => 'pending',
+        ]);
+
+        // Create order
+        return $this->orderService->createOrder($client, $payment, $items, $totalAmount);
     }
 }

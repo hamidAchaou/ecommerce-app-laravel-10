@@ -8,6 +8,10 @@ use App\Http\Controllers\Frontend\CheckoutController; // Fixed: Frontend with ca
 use App\Http\Controllers\ProfileController;
 use Illuminate\Http\Request; // Fixed: Correct Laravel Request import
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Frontend\StripeWebhookController;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Session;
 
 /*
 |--------------------------------------------------------------------------
@@ -31,6 +35,8 @@ Route::resource('products', ProductController::class);
 
 // Categories
 Route::resource('categories', CategoryController::class);
+
+Route::post('/stripe/webhook', [StripeWebhookController::class, 'handleWebhook']);
 
 // Authenticated user profile
 Route::middleware(['auth'])->group(function () {
@@ -84,6 +90,106 @@ Route::post('/debug/checkout', function(Request $request) {
     ]);
 });
 
+
+// Add this to your web.php routes for testing
+Route::get('/debug/webhook-test', function() {
+    // Test if webhook is accessible
+    $webhookUrl = route('stripe.webhook');
+    
+    return response()->json([
+        'webhook_url' => $webhookUrl,
+        'stripe_config' => [
+            'key_exists' => !empty(config('stripe.key')),
+            'secret_exists' => !empty(config('stripe.secret')),
+            'webhook_secret_exists' => !empty(config('stripe.webhook_secret')),
+        ],
+        'database_tables' => [
+            'orders' => DB::table('orders')->count(),
+            'order_items' => DB::table('order_items')->count(),
+            'payments' => DB::table('payments')->count(),
+            'clients' => DB::table('clients')->count(),
+        ],
+        'session_data' => [
+            'sessions_count' => count(Session::all()),
+            'stripe_sessions' => array_keys(array_filter(Session::all(), function($key) {
+                return str_starts_with($key, 'stripe_checkout_');
+            }, ARRAY_FILTER_USE_KEY))
+        ]
+    ]);
+});
+
+// Test webhook manually
+Route::post('/debug/test-webhook', function(\Illuminate\Http\Request $request) {
+    Log::info('Manual webhook test triggered');
+    
+    // Sample Stripe webhook payload for checkout.session.completed
+    $testPayload = [
+        'id' => 'evt_test_' . uniqid(),
+        'type' => 'checkout.session.completed',
+        'data' => [
+            'object' => [
+                'id' => 'cs_test_' . uniqid(),
+                'payment_intent' => 'pi_test_' . uniqid(),
+                'metadata' => [
+                    'user_id' => auth()->id(),
+                    'session_key' => 'test_session_key_' . uniqid(),
+                ]
+            ]
+        ]
+    ];
+    
+    // Store test session data
+    Session::put($testPayload['data']['object']['metadata']['session_key'], [
+        'user_id' => auth()->id(),
+        'cart_items' => [
+            [
+                'id' => 1,
+                'title' => 'Test Product',
+                'price' => 50.00,
+                'quantity' => 2,
+                'description' => 'Test product description'
+            ]
+        ],
+        'client_data' => [
+            'name' => 'Test User',
+            'phone' => '123456789',
+            'address' => 'Test Address',
+            'country_id' => 1,
+            'city_id' => 1,
+            'notes' => 'Test notes'
+        ],
+        'total_amount' => 100.00,
+        'created_at' => now()->timestamp
+    ]);
+    
+    // Call the webhook controller
+    $controller = app(\App\Http\Controllers\Frontend\StripeWebhookController::class);
+    
+    // Create a mock request with the test payload
+    $mockRequest = \Illuminate\Http\Request::create('/stripe/webhook', 'POST', [], [], [], [], json_encode($testPayload));
+    
+    try {
+        $response = $controller->handleWebhook(
+            $mockRequest,
+            app(\App\Services\Frontend\OrderService::class),
+            app(\App\Services\Frontend\PaymentService::class)
+        );
+        
+        return response()->json([
+            'status' => 'success',
+            'webhook_response' => $response->getData(),
+            'orders_created' => DB::table('orders')->count(),
+            'order_items_created' => DB::table('order_items')->count(),
+        ]);
+        
+    } catch (\Exception $e) {
+        return response()->json([
+            'status' => 'error',
+            'error' => $e->getMessage(),
+            'trace' => $e->getTraceAsString()
+        ], 500);
+    }
+})->middleware('auth');
 // ✅ Admin routes
 require __DIR__ . '/admin.php';
 

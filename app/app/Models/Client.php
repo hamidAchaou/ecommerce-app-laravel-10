@@ -2,60 +2,84 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Client extends Model
 {
-    protected $primaryKey = 'id';
-    public $incrementing = false;
-    protected $keyType = 'string';
+    use HasFactory;
 
     protected $fillable = [
-        'id',
         'user_id',
         'phone',
         'address',
-        'city_id',
         'country_id',
+        'city_id',
     ];
 
+    protected $keyType = 'int';
+    public $incrementing = true;
     /**
-     * Get the user that owns the client.
+     * Get the user that owns the client
      */
-    public function user()
+    public function user(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'user_id', 'id');
+        return $this->belongsTo(User::class);
     }
 
     /**
-     * Get the city of the client.
+     * Get the country for the client
      */
-    public function city()
+    public function country(): BelongsTo
     {
-        return $this->belongsTo(City::class, 'city_id', 'id');
+        return $this->belongsTo(Country::class);
     }
 
     /**
-     * Get the country of the client.
+     * Get the city for the client
      */
-    public function country()
+    public function city(): BelongsTo
     {
-        return $this->belongsTo(Country::class, 'country_id', 'id');
+        return $this->belongsTo(City::class);
     }
 
     /**
-     * Get the cart associated with the client.
+     * Get the orders for the client
      */
-    public function cart()
+    public function orders(): HasMany
     {
-        return $this->hasOne(Cart::class, 'client_id', 'id');
+        return $this->hasMany(Order::class);
     }
 
     /**
-     * Get the orders placed by the client.
+     * Get full address string
      */
-    public function orders()
+    public function getFullAddressAttribute(): string
     {
-        return $this->hasMany(Order::class, 'client_id', 'id');
+        $parts = array_filter([
+            $this->address,
+            $this->city?->name,
+            $this->country?->name,
+        ]);
+
+        return implode(', ', $parts);
+    }
+
+    /**
+     * Get client's total orders count
+     */
+    public function getTotalOrdersAttribute(): int
+    {
+        return $this->orders()->count();
+    }
+
+    /**
+     * Get client's total spent amount
+     */
+    public function getTotalSpentAttribute(): float
+    {
+        return $this->orders()->sum('total_amount');
     }
 }

@@ -2,43 +2,102 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Order extends Model
 {
-    protected $primaryKey = 'id';
-    public $incrementing = false;
-    protected $keyType = 'string';
+    use HasFactory;
 
-    protected $fillable = [
-        'id',
+        protected $fillable = [
         'client_id',
-        'status',
-        'total_amount',
         'payment_id',
+        'total_amount',
+        'status',
+    ];
+
+    protected $casts = [
+        'total_amount' => 'decimal:2',
     ];
 
     /**
-     * Get the client that placed the order.
+     * Get the client that owns the order
      */
-    public function client()
+    public function client(): BelongsTo
     {
-        return $this->belongsTo(Client::class, 'client_id', 'id');
+        return $this->belongsTo(Client::class);
     }
 
     /**
-     * Get the payment for the order.
+     * Get the payment for the order
      */
-    public function payment()
+    public function payment(): BelongsTo
     {
-        return $this->belongsTo(Payment::class, 'payment_id', 'id');
+        return $this->belongsTo(Payment::class);
     }
 
     /**
-     * Get the items in the order.
+     * Get the order items for the order
      */
-    public function orderItems()
+    public function orderItems(): HasMany
     {
-        return $this->hasMany(OrderItem::class, 'order_id', 'id');
+        return $this->hasMany(OrderItem::class);
+    }
+
+    /**
+     * Get the total number of items in the order
+     */
+    public function getTotalItemsAttribute(): int
+    {
+        return $this->orderItems->sum('quantity');
+    }
+
+    /**
+     * Check if order is paid
+     */
+    public function isPaid(): bool
+    {
+        return $this->status === 'paid';
+    }
+
+    /**
+     * Check if order is completed
+     */
+    public function isCompleted(): bool
+    {
+        return $this->status === 'completed';
+    }
+
+    /**
+     * Check if order can be cancelled
+     */
+    public function canBeCancelled(): bool
+    {
+        return in_array($this->status, ['pending', 'paid']);
+    }
+
+    /**
+     * Check if order is shipped
+     */
+    public function isShipped(): bool
+    {
+        return in_array($this->status, ['shipped', 'completed']);
+    }
+
+    /**
+     * Get status badge color for UI
+     */
+    public function getStatusColorAttribute(): string
+    {
+        return match($this->status) {
+            'pending' => 'yellow',
+            'paid' => 'blue',
+            'shipped' => 'purple',
+            'completed' => 'green',
+            'cancelled' => 'red',
+            default => 'gray'
+        };
     }
 }
