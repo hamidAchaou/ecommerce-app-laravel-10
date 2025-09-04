@@ -1,10 +1,11 @@
 <?php
 
+use App\Http\Controllers\Frontend\OrderController;
 use App\Http\Controllers\Frontend\CartController;
 use App\Http\Controllers\Frontend\HomeController;
 use App\Http\Controllers\Frontend\ProductController;
 use App\Http\Controllers\Frontend\CategoryController;
-use App\Http\Controllers\Frontend\CheckoutController; // Fixed: Frontend with capital F
+use App\Http\Controllers\Frontend\CheckoutController;
 use App\Http\Controllers\ProfileController;
 use Illuminate\Http\Request; // Fixed: Correct Laravel Request import
 use Illuminate\Support\Facades\Route;
@@ -90,6 +91,11 @@ Route::post('/debug/checkout', function(Request $request) {
     ]);
 });
 
+// Orders for authenticated users
+Route::middleware('auth')->prefix('orders')->name('frontend.orders.')->group(function () {
+    Route::get('/', [OrderController::class, 'index'])->name('index'); // My Orders list
+    Route::get('/{order}', [OrderController::class, 'show'])->name('show'); // Order Details
+});
 
 // Add this to your web.php routes for testing
 Route::get('/debug/webhook-test', function() {
