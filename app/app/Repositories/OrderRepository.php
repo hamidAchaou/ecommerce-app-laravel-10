@@ -3,12 +3,8 @@
 namespace App\Repositories;
 
 use App\Models\Order;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 
-/**
- * Repository for Order model
- *
- * Handles all database interactions related to Orders.
- */
 class OrderRepository extends BaseRepository
 {
     /**
@@ -22,29 +18,46 @@ class OrderRepository extends BaseRepository
     }
 
     /**
-     * Get all orders for a specific client with optional pagination.
+     * Get paginated orders with filtering, search, sorting, and eager loading.
      *
-     * @param int $clientId
+     * @param array $filters
      * @param int $perPage
-     * @return \Illuminate\Contracts\Pagination\LengthAwarePaginator
+     * @return LengthAwarePaginator
      */
-    public function getOrdersByClient(int $clientId, int $perPage = 15)
+    public function getAllWithRelations(array $filters = [], int $perPage = 15): LengthAwarePaginator
     {
-        return $this->getAllPaginate(
-            filters: ['client_id' => $clientId],
-            with: ['payment', 'orderItems.product'],
-            perPage: $perPage
-        );
+        $query = $this->model->with(['client.user', 'payment']);
+        // dd($filters);
+        // Search by ID, client name, or client email
+        if (!empty($filters['search'])) {
+            $search = $filters['search'];
+            $query->where(function ($q) use ($search) {
+                $q->where('id', $search)
+                  ->orWhereHas('client.user', fn($q2) => $q2->where('name', 'like', "%$search%")
+                                                          ->orWhere('email', 'like', "%$search%"));
+            });
+        }
+
+        // Filter by payment status
+        if (!empty($filters['payment_status'])) {
+            $query->whereHas('payment', fn($q) => $q->where('status', $filters['payment_status']));
+        }
+
+        // Filter by order status
+        if (!empty($filters['status'])) {
+            $query->where('status', $filters['status']);
+        }
+
+        // Sorting
+        $orderBy = $filters['sort_by'] ?? 'created_at';
+        $direction = $filters['sort_dir'] ?? 'desc';
+        $query->orderBy($orderBy, $direction);
+
+        return $query->paginate($perPage);
     }
 
-    /**
-     * Find a specific order with all relationships.
-     *
-     * @param int $orderId
-     * @return \App\Models\Order
-     */
-    public function findWithRelations(int $orderId): Order
+    public function findWithRelations(int $orderId)
     {
-        return $this->find($orderId, ['client', 'payment', 'orderItems.product']);
+        return $this->model->with(['client.user', 'payment', 'orderItems.product'])->findOrFail($orderId);
     }
 }

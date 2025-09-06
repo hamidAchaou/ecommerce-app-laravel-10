@@ -3,45 +3,45 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\Order;
+use App\Repositories\OrderRepository;
 use Illuminate\Http\Request;
 
 class OrderController extends Controller
 {
-    public function index()
+    public function __construct(protected OrderRepository $orderRepository) {}
+
+    /**
+     * Display all orders with filters, search, and sorting.
+     */
+    public function index(Request $request)
     {
-        $orders = Order::with(['client', 'payment'])->latest()->paginate(15);
+        $filters = $request->only(['search', 'payment_status', 'status', 'sort_by', 'sort_dir']);
+        $orders = $this->orderRepository->getAllWithRelations($filters, 15);
+
+        // dd($orders);
         return view('admin.orders.index', compact('orders'));
     }
 
-    public function show(Order $order)
+    /**
+     * Show a single order.
+     */
+    public function show(int $orderId)
     {
-        $order->load(['client', 'payment', 'orderItems.product']);
+        $order = $this->orderRepository->findWithRelations($orderId);
+
         return view('admin.orders.show', compact('order'));
     }
 
-    public function create()
+    /**
+     * Delete an order with confirmation.
+     */
+    public function destroy(int $orderId)
     {
-        return view('admin.orders.create');
-    }
+        $order = $this->orderRepository->findWithRelations($orderId);
 
-    public function store(Request $request)
-    {
-    }
-
-    public function edit(Order $order)
-    {
-        return view('admin.orders.edit', compact('order'));
-    }
-
-    public function update(Request $request, Order $order)
-    {
-        // تحديث الطلب
-    }
-
-    public function destroy(Order $order)
-    {
         $order->delete();
-        return redirect()->route('admin.orders.index')->with('success', 'Order deleted successfully.');
+
+        return redirect()->route('admin.orders.index')
+            ->with('success', "Order #{$orderId} deleted successfully.");
     }
 }
