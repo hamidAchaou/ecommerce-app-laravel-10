@@ -9,8 +9,8 @@
     {{-- Sidebar Filters --}}
     <aside class="space-y-6 lg:col-span-1">
         <x-frontend.filters.search />
-        <x-frontend.filters.categories :categories="$categories" />
         <x-frontend.filters.price />
+        <x-frontend.filters.categories :categories="$categories" />
     </aside>
 
     {{-- Products Grid --}}

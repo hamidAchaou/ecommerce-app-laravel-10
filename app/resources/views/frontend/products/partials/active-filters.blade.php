@@ -1,32 +1,49 @@
-@if(request()->hasAny(['search','category','min','max']))
-    <div class="flex flex-wrap items-center gap-2 mb-6">
-        {{-- Search filter --}}
+@if(request('category') || request('search') || request('min_price') || request('max_price'))
+    <div class="mb-6 flex flex-wrap items-center gap-3">
+        {{-- Search Filter --}}
         @if(request('search'))
-            <span class="bg-red-100 text-red-700 px-3 py-1 rounded-full text-sm">
+            <a href="{{ request()->fullUrlWithQuery(['search' => null]) }}"
+               class="flex items-center bg-morocco-green text-white text-sm px-3 py-1 rounded-full hover:bg-green-700">
                 Search: "{{ request('search') }}"
-                <a href="{{ route('products.index', request()->except('search')) }}" class="ml-2 text-gray-500">&times;</a>
-            </span>
+                <span class="ml-2">&times;</span>
+            </a>
         @endif
 
-        {{-- Category filters --}}
+        {{-- Category Filters --}}
         @if(request('category'))
-            @foreach(request('category') as $catId)
-                @php $cat = $categories->firstWhere('id', $catId); @endphp
+            @php
+                $activeCategories = (array) request('category');
+            @endphp
+            @foreach($activeCategories as $catId)
+                @php
+                    $cat = $categories->firstWhere('id', $catId);
+                @endphp
                 @if($cat)
-                    <span class="bg-red-100 text-red-700 px-3 py-1 rounded-full text-sm">
+                    <a href="{{ request()->fullUrlWithQuery(['category' => collect($activeCategories)->reject(fn($id) => $id == $catId)->all() ?: null]) }}"
+                       class="flex items-center bg-morocco-blue text-white text-sm px-3 py-1 rounded-full hover:bg-blue-700">
                         {{ $cat->name }}
-                        <a href="{{ route('products.index', array_diff_key(request()->all(), ['category'=>[$catId]])) }}" class="ml-2 text-gray-500">&times;</a>
-                    </span>
+                        <span class="ml-2">&times;</span>
+                    </a>
                 @endif
             @endforeach
         @endif
 
-        {{-- Price filter --}}
-        @if(request('min') || request('max'))
-            <span class="bg-red-100 text-red-700 px-3 py-1 rounded-full text-sm">
-                Price: ${{ request('min', 0) }} - ${{ request('max', 500) }}
-                <a href="{{ route('products.index', request()->except(['min','max'])) }}" class="ml-2 text-gray-500">&times;</a>
-            </span>
+        {{-- Price Filter --}}
+        @if(request('min_price') || request('max_price'))
+            <a href="{{ request()->fullUrlWithQuery(['min_price' => null, 'max_price' => null]) }}"
+               class="flex items-center bg-morocco-red text-white text-sm px-3 py-1 rounded-full hover:bg-red-700">
+                Price: 
+                {{ request('min_price') ? 'from ' . request('min_price') : '' }}
+                {{ request('max_price') ? ' to ' . request('max_price') : '' }}
+                <span class="ml-2">&times;</span>
+            </a>
         @endif
+
+        {{-- Clear All --}}
+        <a href="{{ route('products.index') }}"
+           class="flex items-center bg-gray-300 text-gray-800 text-sm px-3 py-1 rounded-full hover:bg-gray-400">
+            Clear All
+            <span class="ml-2">&times;</span>
+        </a>
     </div>
 @endif
