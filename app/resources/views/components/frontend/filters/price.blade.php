@@ -1,4 +1,4 @@
-<div class="bg-white rounded-2xl shadow-lg p-6 sticky top-40 hover:shadow-2xl transition-shadow duration-300">
+<div class="bg-white rounded-2xl shadow-lg p-6 sticky top-60 hover:shadow-2xl transition-shadow duration-300">
     <h3 class="text-xl font-bold text-gray-900 mb-5 border-b pb-3">Filter by Price</h3>
 
     <form action="{{ route('products.index') }}" method="GET" class="space-y-6">
@@ -41,43 +41,3 @@
         </button>
     </form>
 </div>
-
-@push('scripts')
-<script>
-    document.addEventListener('DOMContentLoaded', function () {
-        const minSlider = document.getElementById('minSlider');
-        const maxSlider = document.getElementById('maxSlider');
-        const minPrice = document.getElementById('minPrice');
-        const maxPrice = document.getElementById('maxPrice');
-        const minLabel = document.getElementById('minLabel');
-        const maxLabel = document.getElementById('maxLabel');
-
-        function updateSlider() {
-            let minVal = parseInt(minSlider.value);
-            let maxVal = parseInt(maxSlider.value);
-
-            // Prevent sliders from overlapping
-            if (minVal > maxVal - 10) {
-                minVal = maxVal - 10;
-                minSlider.value = minVal;
-            }
-            if (maxVal < minVal + 10) {
-                maxVal = minVal + 10;
-                maxSlider.value = maxVal;
-            }
-
-            // Update hidden inputs
-            minPrice.value = minVal;
-            maxPrice.value = maxVal;
-
-            // Update labels
-            minLabel.textContent = "$" + minVal;
-            maxLabel.textContent = "$" + maxVal;
-        }
-
-        minSlider.addEventListener('input', updateSlider);
-        maxSlider.addEventListener('input', updateSlider);
-        updateSlider();
-    });
-</script>
-@endpush
