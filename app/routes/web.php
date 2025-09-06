@@ -10,6 +10,7 @@ use App\Http\Controllers\ProfileController;
 use Illuminate\Http\Request; // Fixed: Correct Laravel Request import
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Frontend\StripeWebhookController;
+use App\Http\Controllers\Frontend\WishlistController;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Session;
@@ -102,12 +103,12 @@ Route::middleware('auth')->prefix('orders')->name('frontend.orders.')->group(fun
     Route::get('/', [OrderController::class, 'index'])->name('index'); // My Orders list
     Route::get('/{order}', [OrderController::class, 'show'])->name('show'); // Order Details
 });
-// Route::middleware('auth')->prefix('wishlist')->name('wishlist.')->group(function () {
-//     Route::get('/', [WishlistController::class, 'index'])->name('index');   // Show wishlist
-//     Route::post('/{product}', [WishlistController::class, 'store'])->name('store'); // Add product
-//     Route::delete('/{product}', [WishlistController::class, 'destroy'])->name('destroy'); // Remove product
-// });
 
+Route::middleware(['auth'])->prefix('wishlist')->name('wishlist.')->group(function () {
+    Route::get('/', [WishlistController::class, 'index'])->name('index');
+    Route::post('/add/{product}', [WishlistController::class, 'store'])->name('store');
+    Route::delete('/remove/{product}', [WishlistController::class, 'destroy'])->name('destroy');
+});
 // Add this to your web.php routes for testing
 Route::get('/debug/webhook-test', function () {
     // Test if webhook is accessible

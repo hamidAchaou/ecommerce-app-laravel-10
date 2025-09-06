@@ -16,7 +16,8 @@
     {{-- Body --}}
     <div x-show="open" x-transition>
         <form action="{{ route('products.index') }}" method="GET" class="space-y-2">
-            {{-- Preserve search & price --}}
+            
+            {{-- Preserve other query params except category/page --}}
             @php
                 use Illuminate\Support\Arr;
                 $params = request()->except(['category', 'page']);
@@ -24,13 +25,11 @@
 
             @foreach ($params as $name => $value)
                 @foreach (Arr::wrap($value) as $v)
-                    @if (!is_array($v))
-                        <input type="hidden" name="{{ $name }}{{ is_array($value) ? '[]' : '' }}" value="{{ $v }}">
-                    @endif
+                    <input type="hidden" name="{{ $name }}{{ is_array($value) ? '[]' : '' }}" value="{{ $v }}">
                 @endforeach
             @endforeach
 
-            {{-- All categories --}}
+            {{-- All Categories --}}
             <label class="flex items-center gap-3 p-3 rounded-lg hover:bg-morocco-ivory cursor-pointer transition {{ empty(request('category')) ? 'bg-morocco-red/10 border border-morocco-red' : '' }}">
                 <input type="radio" name="category[]" value="" onchange="this.form.submit()"
                     {{ empty(request('category')) ? 'checked' : '' }}
@@ -38,7 +37,7 @@
                 <span class="text-gray-800 font-medium">All Categories</span>
             </label>
 
-            {{-- Individual categories --}}
+            {{-- Individual Categories --}}
             @foreach ($categories as $category)
                 @php $isSelected = in_array($category->id, request('category', [])); @endphp
                 <label class="flex items-center gap-3 p-3 rounded-lg hover:bg-morocco-ivory cursor-pointer transition {{ $isSelected ? 'bg-morocco-red/10 border border-morocco-red' : '' }}">
@@ -48,6 +47,7 @@
                     <span class="text-gray-800 font-medium">{{ $category->name }}</span>
                 </label>
             @endforeach
+
         </form>
     </div>
 </div>

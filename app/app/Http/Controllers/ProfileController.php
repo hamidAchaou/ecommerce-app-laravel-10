@@ -7,6 +7,7 @@ use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Redirect;
 
 class ProfileController extends Controller
@@ -85,12 +86,15 @@ class ProfileController extends Controller
             'password' => 'required|min:8|confirmed',
         ]);
 
-        if (!\Hash::check($request->current_password, auth()->user()->password)) {
+        /** @var \App\Models\User $user */
+        $user = auth()->user();
+
+        if (!Hash::check($request->current_password, $user->password)) {
             return back()->withErrors(['current_password' => 'Current password does not match.']);
         }
 
-        auth()->user()->update([
-            'password' => \Hash::make($request->password),
+        $user->update([
+            'password' => Hash::make($request->password),
         ]);
 
         return redirect()->route('profile.edit')->with('status', 'Password updated successfully.');

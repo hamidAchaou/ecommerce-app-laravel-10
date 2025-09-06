@@ -80,7 +80,7 @@
                     <x-button.primary-button href="{{ route('frontend.orders.index') }}" icon="fas fa-box" color="primary" class="w-full">
                         My Orders
                     </x-button.primary-button>
-                    <x-button.primary-button href="{{ route('frontend.orders.index') }}" icon="fas fa-heart" color="secondary" class="w-full">
+                    <x-button.primary-button href="{{ route('wishlist.index') }}" icon="fas fa-heart" color="secondary" class="w-full">
                         Wishlist
                     </x-button.primary-button>
                 </div>

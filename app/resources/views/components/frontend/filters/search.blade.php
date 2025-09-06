@@ -1,32 +1,41 @@
-    
-    {{-- 🔍 Search --}}
-    <form action="{{ route('products.index') }}" method="GET" class="flex-1 flex items-center gap-3">
-        @php
-            use Illuminate\Support\Arr;
-            $params = request()->except(['search', 'page']);
-        @endphp
+@props([
+    'route' => 'products.index',
+    'queryName' => 'search',
+    'placeholder' => 'Search Moroccan crafts...'
+])
 
-        @foreach ($params as $name => $value)
-            @foreach (Arr::wrap($value) as $v)
-                @if (!is_array($v))
-                    <input type="hidden" name="{{ $name }}{{ is_array($value) ? '[]' : '' }}" value="{{ $v }}">
-                @endif
-            @endforeach
+@php
+use Illuminate\Support\Arr;
+// Preserve all existing query parameters except the current search & page
+$params = request()->except([$queryName, 'page']);
+@endphp
+
+<form action="{{ route($route) }}" method="GET" class="flex-1 flex items-center gap-3">
+
+    {{-- Hidden fields for filters and pagination --}}
+    @foreach ($params as $name => $value)
+        @foreach (Arr::wrap($value) as $v)
+            @if (!is_array($v))
+                <input type="hidden" name="{{ $name }}{{ is_array($value) ? '[]' : '' }}" value="{{ $v }}">
+            @endif
         @endforeach
+    @endforeach
 
-        <div class="relative flex-1">
-            <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
-            <input 
-                type="text" 
-                name="search" 
-                value="{{ request('search') }}" 
-                placeholder="Search Moroccan crafts..." 
-                class="w-full rounded-xl border border-gray-200 focus:ring-2 focus:ring-morocco-red focus:border-morocco-red pl-12 pr-4 py-2.5 text-sm text-gray-700 shadow-sm transition"
-            >
-        </div>
+    {{-- Search input --}}
+    <div class="relative flex-1">
+        <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
+        <input
+            type="text"
+            name="{{ $queryName }}"
+            value="{{ request($queryName) }}"
+            placeholder="{{ $placeholder }}"
+            class="w-full rounded-xl border border-gray-200 focus:ring-2 focus:ring-morocco-red focus:border-morocco-red pl-12 pr-4 py-2.5 text-sm text-gray-700 shadow-sm transition"
+            autocomplete="off"
+        >
+    </div>
 
-        <button type="submit"
-            class="px-5 py-2.5 bg-gradient-to-r from-morocco-red to-morocco-blue text-white font-semibold rounded-xl shadow hover:opacity-90 transition">
-            Search
-        </button>
-    </form>
+    {{-- Submit button using Primary-button component --}}
+    <x-button.primary-button type="submit" color="primary" icon="fas fa-search">
+        Search
+    </x-button.primary-button>
+</form>
