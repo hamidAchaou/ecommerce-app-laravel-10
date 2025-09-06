@@ -40,12 +40,6 @@ $menuGroups = [
                 'icon' => 'fas fa-list',
                 'active' => request()->routeIs('admin.orders.*'),
             ],
-            'pending_orders' => [
-                'label' => __('Pending Orders'),
-                'route' => 'admin.orders.pending',
-                'icon' => 'fas fa-clock',
-                'active' => request()->routeIs('admin.orders.pending'),
-            ],
         ],
     ],
     'access_control' => [

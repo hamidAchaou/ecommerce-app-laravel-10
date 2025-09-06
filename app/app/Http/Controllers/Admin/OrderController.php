@@ -28,7 +28,7 @@ class OrderController extends Controller
     public function show(int $orderId)
     {
         $order = $this->orderRepository->findWithRelations($orderId);
-
+        // dd($order->orderItems[0]->product->title);
         return view('admin.orders.show', compact('order'));
     }
 
