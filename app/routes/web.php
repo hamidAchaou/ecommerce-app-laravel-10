@@ -47,6 +47,12 @@ Route::middleware(['auth'])->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
 
+// Change password form
+Route::middleware(['auth'])->group(function () {
+    Route::get('/password/change', [ProfileController::class, 'changePasswordForm'])->name('password.change');
+    Route::post('/password/change', [ProfileController::class, 'changePassword'])->name('password.update');
+});
+
 // ✅ Seller panel
 Route::middleware(['auth', 'role:seller'])->group(function () {
     Route::get('/seller', fn() => 'Seller Panel')->name('seller.panel');
@@ -79,7 +85,7 @@ Route::middleware('auth')->group(function () {
 });
 
 // Debug route - remove after fixing the issue
-Route::post('/debug/checkout', function(Request $request) {
+Route::post('/debug/checkout', function (Request $request) {
     return response()->json([
         'auth_check' => auth()->check(),
         'user_id' => auth()->id(),
@@ -96,12 +102,17 @@ Route::middleware('auth')->prefix('orders')->name('frontend.orders.')->group(fun
     Route::get('/', [OrderController::class, 'index'])->name('index'); // My Orders list
     Route::get('/{order}', [OrderController::class, 'show'])->name('show'); // Order Details
 });
+// Route::middleware('auth')->prefix('wishlist')->name('wishlist.')->group(function () {
+//     Route::get('/', [WishlistController::class, 'index'])->name('index');   // Show wishlist
+//     Route::post('/{product}', [WishlistController::class, 'store'])->name('store'); // Add product
+//     Route::delete('/{product}', [WishlistController::class, 'destroy'])->name('destroy'); // Remove product
+// });
 
 // Add this to your web.php routes for testing
-Route::get('/debug/webhook-test', function() {
+Route::get('/debug/webhook-test', function () {
     // Test if webhook is accessible
     $webhookUrl = route('stripe.webhook');
-    
+
     return response()->json([
         'webhook_url' => $webhookUrl,
         'stripe_config' => [
@@ -117,85 +128,13 @@ Route::get('/debug/webhook-test', function() {
         ],
         'session_data' => [
             'sessions_count' => count(Session::all()),
-            'stripe_sessions' => array_keys(array_filter(Session::all(), function($key) {
+            'stripe_sessions' => array_keys(array_filter(Session::all(), function ($key) {
                 return str_starts_with($key, 'stripe_checkout_');
             }, ARRAY_FILTER_USE_KEY))
         ]
     ]);
 });
 
-// Test webhook manually
-Route::post('/debug/test-webhook', function(\Illuminate\Http\Request $request) {
-    Log::info('Manual webhook test triggered');
-    
-    // Sample Stripe webhook payload for checkout.session.completed
-    $testPayload = [
-        'id' => 'evt_test_' . uniqid(),
-        'type' => 'checkout.session.completed',
-        'data' => [
-            'object' => [
-                'id' => 'cs_test_' . uniqid(),
-                'payment_intent' => 'pi_test_' . uniqid(),
-                'metadata' => [
-                    'user_id' => auth()->id(),
-                    'session_key' => 'test_session_key_' . uniqid(),
-                ]
-            ]
-        ]
-    ];
-    
-    // Store test session data
-    Session::put($testPayload['data']['object']['metadata']['session_key'], [
-        'user_id' => auth()->id(),
-        'cart_items' => [
-            [
-                'id' => 1,
-                'title' => 'Test Product',
-                'price' => 50.00,
-                'quantity' => 2,
-                'description' => 'Test product description'
-            ]
-        ],
-        'client_data' => [
-            'name' => 'Test User',
-            'phone' => '123456789',
-            'address' => 'Test Address',
-            'country_id' => 1,
-            'city_id' => 1,
-            'notes' => 'Test notes'
-        ],
-        'total_amount' => 100.00,
-        'created_at' => now()->timestamp
-    ]);
-    
-    // Call the webhook controller
-    $controller = app(\App\Http\Controllers\Frontend\StripeWebhookController::class);
-    
-    // Create a mock request with the test payload
-    $mockRequest = \Illuminate\Http\Request::create('/stripe/webhook', 'POST', [], [], [], [], json_encode($testPayload));
-    
-    try {
-        $response = $controller->handleWebhook(
-            $mockRequest,
-            app(\App\Services\Frontend\OrderService::class),
-            app(\App\Services\Frontend\PaymentService::class)
-        );
-        
-        return response()->json([
-            'status' => 'success',
-            'webhook_response' => $response->getData(),
-            'orders_created' => DB::table('orders')->count(),
-            'order_items_created' => DB::table('order_items')->count(),
-        ]);
-        
-    } catch (\Exception $e) {
-        return response()->json([
-            'status' => 'error',
-            'error' => $e->getMessage(),
-            'trace' => $e->getTraceAsString()
-        ], 500);
-    }
-})->middleware('auth');
 // ✅ Admin routes
 require __DIR__ . '/admin.php';
 

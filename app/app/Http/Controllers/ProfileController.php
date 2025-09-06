@@ -3,46 +3,61 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\ProfileUpdateRequest;
+use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Redirect;
-use Illuminate\View\View;
 
 class ProfileController extends Controller
 {
     /**
-     * Display the user's profile form.
+     * Show the profile page (view mode).
      */
-    public function edit(Request $request): View
+    public function show(Request $request)
     {
-        return view('profile.edit', [
+        return view('profile.profile', [
             'user' => $request->user(),
         ]);
     }
 
     /**
-     * Update the user's profile information.
+     * Show the profile edit form.
      */
-    public function update(ProfileUpdateRequest $request): RedirectResponse
+    public function edit(Request $request)
     {
-        $request->user()->fill($request->validated());
-
-        if ($request->user()->isDirty('email')) {
-            $request->user()->email_verified_at = null;
-        }
-
-        $request->user()->save();
-
-        return Redirect::route('profile.edit')->with('status', 'profile-updated');
+        return view('profile.edit', [
+            'user'            => $request->user(),
+            'mustVerifyEmail' => $request->user() instanceof MustVerifyEmail,
+            'status'          => session('status'),
+        ]);
     }
 
     /**
-     * Delete the user's account.
+     * Update the authenticated user's profile.
+     */
+    public function update(ProfileUpdateRequest $request): RedirectResponse
+    {
+        $user = $request->user();
+
+        $user->fill($request->validated());
+
+        if ($user->isDirty('email')) {
+            $user->email_verified_at = null;
+        }
+
+        $user->save();
+
+        return Redirect::route('profile.edit')
+            ->with('status', 'Profile updated successfully.');
+    }
+
+    /**
+     * Delete the authenticated user's account.
      */
     public function destroy(Request $request): RedirectResponse
     {
-        $request->validateWithBag('userDeletion', [
+        $request->validate([
             'password' => ['required', 'current_password'],
         ]);
 
@@ -55,6 +70,29 @@ class ProfileController extends Controller
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
-        return Redirect::to('/');
+        return Redirect::to('/')
+            ->with('status', 'Account deleted successfully.');
+    }
+    public function changePasswordForm()
+    {
+        return view('profile.change-password');
+    }
+
+    public function changePassword(Request $request)
+    {
+        $request->validate([
+            'current_password' => 'required',
+            'password' => 'required|min:8|confirmed',
+        ]);
+
+        if (!\Hash::check($request->current_password, auth()->user()->password)) {
+            return back()->withErrors(['current_password' => 'Current password does not match.']);
+        }
+
+        auth()->user()->update([
+            'password' => \Hash::make($request->password),
+        ]);
+
+        return redirect()->route('profile.edit')->with('status', 'Password updated successfully.');
     }
 }
