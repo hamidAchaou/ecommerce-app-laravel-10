@@ -1,6 +1,6 @@
 <div 
     x-data="{ open: true }" 
-    class="bg-white rounded-2xl shadow-lg p-6 sticky top-40 hover:shadow-xl transition-shadow duration-300"
+    class="bg-white rounded-2xl shadow p-6 sticky top-40 hover:shadow-xl transition-all duration-300"
 >
     {{-- Header --}}
     <div class="flex justify-between items-center mb-4 cursor-pointer" @click="open = !open">
