@@ -43,9 +43,9 @@
                         </form>
                         
                         <a href="{{ route('products.show', $item->product->id) }}" class="block">
-                            <img src="{{ $item->product->image_url ?? 'https://via.placeholder.com/600x400?text=Product+Image' }}" alt="{{ $item->product->name }}" class="w-full h-56 object-cover rounded-t-lg">
+                            <img src="{{ asset('storage/' . ($item->product->images->first()->image_path ?? 'placeholder.jpg')) }}" alt="{{ $item->product->name }}" class="w-full h-56 object-cover rounded-t-lg">
                             <div class="p-4">
-                                <h2 class="text-lg font-semibold text-gray-800 truncate mb-1">{{ $item->product->name }}</h2>
+                                <h2 class="text-lg font-semibold text-gray-800 truncate mb-1">{{ $item->product->title }}</h2>
                                 <p class="text-2xl font-bold text-morocco-blue">${{ number_format($item->product->price, 2) }}</p>
                             </div>
                         </a>

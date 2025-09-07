@@ -109,6 +109,7 @@ Route::middleware(['auth'])->prefix('wishlist')->name('wishlist.')->group(functi
     Route::post('/add/{product}', [WishlistController::class, 'store'])->name('store');
     Route::delete('/remove/{product}', [WishlistController::class, 'destroy'])->name('destroy');
 });
+
 // Add this to your web.php routes for testing
 Route::get('/debug/webhook-test', function () {
     // Test if webhook is accessible

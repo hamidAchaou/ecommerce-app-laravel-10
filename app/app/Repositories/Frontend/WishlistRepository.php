@@ -12,29 +12,27 @@ class WishlistRepository extends BaseRepository
         return Wishlist::class;
     }
 
-    // Check if product already exists in wishlist
-    public function exists(int $userId, int $productId): bool
+    public function create(array $data)
     {
-        return $this->model->where('user_id', $userId)
-            ->where('product_id', $productId)
-            ->exists();
+        return $this->model->create($data);
     }
 
-    // Get all wishlist items for a user with product data
-    public function getUserWishlist(int $userId)
+    public function exists(int $user_id, int $product_id): bool
     {
-        return $this->model->where('user_id', $userId)
+        return $this->model->where(compact('user_id', 'product_id'))->exists();
+    }
+
+    public function getUserWishlist(int $user_id)
+    {
+        return $this->model
+            ->where('user_id', $user_id)
             ->with('product')
-            ->orderBy('created_at', 'desc')
+            ->latest()
             ->get();
     }
 
-    // Remove product from wishlist
-    public function remove(int $userId, int $productId)
+    public function remove(int $user_id, int $product_id): int
     {
-        return $this->model
-            ->where('user_id', $userId)
-            ->where('product_id', $productId)
-            ->delete();
+        return $this->model->where(compact('user_id', 'product_id'))->delete();
     }
 }

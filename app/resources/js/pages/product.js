@@ -1,81 +1,112 @@
-document.addEventListener('DOMContentLoaded', function () {
+document.addEventListener("DOMContentLoaded", () => {
     /**
      * Quantity controls
      */
-    const quantityInputs = document.querySelectorAll('.quantity-input');
+    document.addEventListener("click", (e) => {
+        if (e.target.matches(".quantity-increment, .quantity-decrement")) {
+            const input = e.target.closest("div").querySelector(".quantity-input");
+            if (!input) return;
 
-    quantityInputs.forEach(input => {
-        input.addEventListener('change', function () {
-            const min = parseInt(this.getAttribute('min')) || 1;
-            const max = parseInt(this.getAttribute('max')) || 99;
-            let value = parseInt(this.value);
+            const min = parseInt(input.getAttribute("min")) || 1;
+            const max = parseInt(input.getAttribute("max")) || 99;
+            let value = parseInt(input.value) || min;
 
-            if (isNaN(value) || value < min) {
-                this.value = min;
-            } else if (value > max) {
-                this.value = max;
-            }
-        });
-    });
-
-    document.addEventListener('click', function (e) {
-        if (e.target.matches('.quantity-increment')) {
-            const input = e.target.parentNode.querySelector('.quantity-input');
-            if (input) {
-                const max = parseInt(input.getAttribute('max')) || 99;
-                const current = parseInt(input.value) || 1;
-                if (current < max) {
-                    input.value = current + 1;
-                }
-            }
-        } else if (e.target.matches('.quantity-decrement')) {
-            const input = e.target.parentNode.querySelector('.quantity-input');
-            if (input) {
-                const min = parseInt(input.getAttribute('min')) || 1;
-                const current = parseInt(input.value) || 1;
-                if (current > min) {
-                    input.value = current - 1;
-                }
+            if (e.target.matches(".quantity-increment") && value < max) {
+                input.value = value + 1;
+            } else if (e.target.matches(".quantity-decrement") && value > min) {
+                input.value = value - 1;
             }
         }
+    });
+
+    const quantityInputs = document.querySelectorAll(".quantity-input");
+    quantityInputs.forEach(input => {
+        input.addEventListener("change", () => {
+            const min = parseInt(input.getAttribute("min")) || 1;
+            const max = parseInt(input.getAttribute("max")) || 99;
+            let value = parseInt(input.value) || min;
+            input.value = Math.min(Math.max(value, min), max);
+        });
     });
 
     /**
      * Price filter sliders
      */
-    const minSlider = document.getElementById('minSlider');
-    const maxSlider = document.getElementById('maxSlider');
-    const minPrice = document.getElementById('minPrice');
-    const maxPrice = document.getElementById('maxPrice');
-    const minLabel = document.getElementById('minLabel');
-    const maxLabel = document.getElementById('maxLabel');
+    const minSlider = document.getElementById("minSlider");
+    const maxSlider = document.getElementById("maxSlider");
+    const minPrice = document.getElementById("minPrice");
+    const maxPrice = document.getElementById("maxPrice");
+    const minLabel = document.getElementById("minLabel");
+    const maxLabel = document.getElementById("maxLabel");
 
     if (minSlider && maxSlider) {
-        function updateSlider() {
+        const updateSlider = () => {
             let minVal = parseInt(minSlider.value);
             let maxVal = parseInt(maxSlider.value);
 
-            // Prevent overlap
-            if (minVal > maxVal - 10) {
-                minVal = maxVal - 10;
-                minSlider.value = minVal;
-            }
-            if (maxVal < minVal + 10) {
-                maxVal = minVal + 10;
-                maxSlider.value = maxVal;
-            }
+            if (minVal > maxVal - 10) minVal = maxVal - 10;
+            if (maxVal < minVal + 10) maxVal = minVal + 10;
 
-            // Update hidden fields
-            minPrice.value = minVal;
-            maxPrice.value = maxVal;
+            minSlider.value = minVal;
+            maxSlider.value = maxVal;
 
-            // Update labels
-            minLabel.textContent = "$" + minVal;
-            maxLabel.textContent = "$" + maxVal;
-        }
+            if (minPrice) minPrice.value = minVal;
+            if (maxPrice) maxPrice.value = maxVal;
 
-        minSlider.addEventListener('input', updateSlider);
-        maxSlider.addEventListener('input', updateSlider);
+            if (minLabel) minLabel.textContent = `$${minVal}`;
+            if (maxLabel) maxLabel.textContent = `$${maxVal}`;
+        };
+
+        minSlider.addEventListener("input", updateSlider);
+        maxSlider.addEventListener("input", updateSlider);
         updateSlider();
     }
+
+    /**
+     * Wishlist buttons (icon-only, reusable)
+     */
+    const toggleWishlistButton = (button, isActive) => {
+        const svg = button.querySelector("svg");
+        if (!svg) return;
+
+        if (isActive) {
+            button.classList.add("bg-red-600", "text-white", "border-red-600", "hover:bg-red-700");
+            button.classList.remove("bg-white", "text-red-600", "border-red-600", "hover:bg-red-50");
+            svg.setAttribute("fill", "currentColor");
+        } else {
+            button.classList.remove("bg-red-600", "text-white", "border-red-600", "hover:bg-red-700");
+            button.classList.add("bg-white", "text-red-600", "border-red-600", "hover:bg-red-50");
+            svg.setAttribute("fill", "none");
+        }
+    };
+
+    document.addEventListener("click", async (e) => {
+        const button = e.target.closest(".wishlist-btn");
+        if (!button) return;
+
+        const productId = button.dataset.productId;
+        const isActive = button.classList.contains("bg-red-600");
+
+        try {
+            const response = await fetch(`/wishlist/${productId}`, {
+                method: isActive ? "DELETE" : "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]').getAttribute("content"),
+                    "Accept": "application/json",
+                },
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.message || "Wishlist action failed");
+            }
+
+            const data = await response.json();
+            if (data.success) toggleWishlistButton(button, data.isInWishlist);
+
+        } catch (error) {
+            console.error(error);
+        }
+    });
 });

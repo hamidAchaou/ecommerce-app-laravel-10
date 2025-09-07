@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Auth;
 
 class Product extends Model
 {
@@ -39,6 +40,22 @@ class Product extends Model
         return $this->hasMany(OrderItem::class, 'product_id', 'id');
     }
 
+    public function wishlists()
+    {
+        return $this->hasMany(\App\Models\Wishlist::class);
+    }
+
+    /**
+     * Check if this product is in the current user's wishlist
+     */
+    public function isInWishlist(): bool
+    {
+        if (!Auth::check()) {
+            return false;
+        }
+
+        return $this->wishlists()->where('user_id', Auth::id())->exists();
+    }
     /**
      * Helpers
      */
