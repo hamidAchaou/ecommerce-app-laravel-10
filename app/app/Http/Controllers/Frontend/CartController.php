@@ -34,11 +34,11 @@ class CartController extends Controller
             'product_id' => 'required|exists:products,id',
             'quantity'   => 'required|integer|min:1|max:99',
         ]);
-
+    
         $this->cartService->addToCart($data['product_id'], $data['quantity']);
-
+    
         $summary = $this->cartService->getCartSummary();
-
+    
         return response()->json([
             'message'    => 'Product added to cart successfully!',
             'cartItems'  => $summary['items'],
@@ -46,7 +46,7 @@ class CartController extends Controller
             'count'      => $summary['count'],
         ]);
     }
-
+    
     public function update(Request $request, int $id)
     {
         $request->validate(['quantity' => 'required|integer|min:1|max:99']);

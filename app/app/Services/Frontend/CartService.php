@@ -9,6 +9,11 @@ class CartService
 {
     public function __construct(protected CartRepository $cartRepo) {}
 
+    public function addToCart(int $productId, int $quantity): void
+    {
+        $this->cartRepo->addItem($productId, $quantity, auth()->id());
+    }
+
     public function getItems(): Collection
     {
         return $this->cartRepo->getItems(auth()->id());
@@ -34,9 +39,11 @@ class CartService
         ];
     }
 
-    public function addToCart(int $productId, int $quantity): void
+    public function mergeGuestCartToUser(): void
     {
-        $this->cartRepo->addItem($productId, $quantity, auth()->id());
+        if (!auth()->check()) return;
+
+        $this->cartRepo->mergeSessionToUser(auth()->id());
     }
 
     public function updateCartItem(int $productId, int $quantity): void

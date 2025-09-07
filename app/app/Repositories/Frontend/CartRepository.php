@@ -30,7 +30,8 @@ class CartRepository extends BaseRepository
         $sessionCart = Session::get('cart', []);
         $products = Product::with('images')->whereIn('id', array_keys($sessionCart))->get()->keyBy('id');
 
-        return collect($sessionCart)->map(fn($item, $productId) => 
+        return collect($sessionCart)->map(
+            fn($item, $productId) =>
             $products->get($productId) ? $this->mapItem($products[$productId], $item['quantity']) : null
         )->filter();
     }
@@ -52,8 +53,8 @@ class CartRepository extends BaseRepository
         }
 
         $cart = Session::get('cart', []);
-        $cart[$productId]['quantity'] = isset($cart[$productId]) 
-            ? min($cart[$productId]['quantity'] + $quantity, self::MAX_QUANTITY) 
+        $cart[$productId]['quantity'] = isset($cart[$productId])
+            ? min($cart[$productId]['quantity'] + $quantity, self::MAX_QUANTITY)
             : $quantity;
         Session::put('cart', $cart);
     }
@@ -121,5 +122,28 @@ class CartRepository extends BaseRepository
             'image' => $product->mainImageUrl(),
             'product' => $product,
         ];
+    }
+
+
+    public function mergeSessionToUser(int $userId): void
+    {
+        $sessionCart = Session::get('cart', []);
+        if (empty($sessionCart)) return;
+
+        $cart = $this->model->firstOrCreate(['client_id' => $userId]);
+
+        foreach ($sessionCart as $productId => $item) {
+            $existing = $cart->cartItems()->where('product_id', $productId)->first();
+            $newQty = $existing
+                ? min($existing->quantity + $item['quantity'], self::MAX_QUANTITY)
+                : min($item['quantity'], self::MAX_QUANTITY);
+
+            $cart->cartItems()->updateOrCreate(
+                ['product_id' => $productId],
+                ['quantity' => $newQty]
+            );
+        }
+
+        Session::forget('cart');
     }
 }
