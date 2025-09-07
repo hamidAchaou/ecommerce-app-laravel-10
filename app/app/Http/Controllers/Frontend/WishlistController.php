@@ -25,9 +25,11 @@ class WishlistController extends Controller
 
     public function store(Product $product, Request $request): JsonResponse
     {
-        // dd($product, $request->all());
         if (!Auth::check()) {
-            return response()->json(['success' => false, 'message' => 'Not authenticated'], 401);
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthenticated.'
+            ], 401);
         }
     
         try {
@@ -47,12 +49,10 @@ class WishlistController extends Controller
             Log::error("Wishlist add error: {$e->getMessage()}");
             return response()->json([
                 'success' => false,
-                'message' => $e->getMessage(), // return actual error for debugging
+                'message' => 'Failed to add product to wishlist',
             ], 500);
         }
-    }
-    
-    
+    }    
 
     public function destroy(Product $product): JsonResponse
     {

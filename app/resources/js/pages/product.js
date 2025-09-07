@@ -4,7 +4,9 @@ document.addEventListener("DOMContentLoaded", () => {
      */
     document.addEventListener("click", (e) => {
         if (e.target.matches(".quantity-increment, .quantity-decrement")) {
-            const input = e.target.closest("div").querySelector(".quantity-input");
+            const input = e.target
+                .closest("div")
+                .querySelector(".quantity-input");
             if (!input) return;
 
             const min = parseInt(input.getAttribute("min")) || 1;
@@ -20,7 +22,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     const quantityInputs = document.querySelectorAll(".quantity-input");
-    quantityInputs.forEach(input => {
+    quantityInputs.forEach((input) => {
         input.addEventListener("change", () => {
             const min = parseInt(input.getAttribute("min")) || 1;
             const max = parseInt(input.getAttribute("max")) || 99;
@@ -63,19 +65,39 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     /**
-     * Wishlist buttons (icon-only, reusable)
+     * Wishlist buttons
      */
     const toggleWishlistButton = (button, isActive) => {
         const svg = button.querySelector("svg");
         if (!svg) return;
 
         if (isActive) {
-            button.classList.add("bg-red-600", "text-white", "border-red-600", "hover:bg-red-700");
-            button.classList.remove("bg-white", "text-red-600", "border-red-600", "hover:bg-red-50");
+            button.classList.add(
+                "bg-red-600",
+                "text-white",
+                "border-red-600",
+                "hover:bg-red-700"
+            );
+            button.classList.remove(
+                "bg-white",
+                "text-red-600",
+                "border-red-600",
+                "hover:bg-red-50"
+            );
             svg.setAttribute("fill", "currentColor");
         } else {
-            button.classList.remove("bg-red-600", "text-white", "border-red-600", "hover:bg-red-700");
-            button.classList.add("bg-white", "text-red-600", "border-red-600", "hover:bg-red-50");
+            button.classList.remove(
+                "bg-red-600",
+                "text-white",
+                "border-red-600",
+                "hover:bg-red-700"
+            );
+            button.classList.add(
+                "bg-white",
+                "text-red-600",
+                "border-red-600",
+                "hover:bg-red-50"
+            );
             svg.setAttribute("fill", "none");
         }
     };
@@ -83,30 +105,41 @@ document.addEventListener("DOMContentLoaded", () => {
     document.addEventListener("click", async (e) => {
         const button = e.target.closest(".wishlist-btn");
         if (!button) return;
-
+    
         const productId = button.dataset.productId;
         const isActive = button.classList.contains("bg-red-600");
-
+    
         try {
             const response = await fetch(`/wishlist/${productId}`, {
                 method: isActive ? "DELETE" : "POST",
                 headers: {
                     "Content-Type": "application/json",
                     "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]').getAttribute("content"),
-                    "Accept": "application/json",
+                    Accept: "application/json",
                 },
+                credentials: "same-origin", // ✅ ensure session cookies are sent
             });
-
-            if (!response.ok) {
-                const errorData = await response.json().catch(() => ({}));
-                throw new Error(errorData.message || "Wishlist action failed");
+    
+            const data = await response.json().catch(() => ({}));
+    
+            // ✅ Handle unauthenticated case
+            if (response.status === 401 || data.message === "Unauthenticated.") {
+                window.location.href = "/login";
+                return;
             }
-
-            const data = await response.json();
-            if (data.success) toggleWishlistButton(button, data.isInWishlist);
-
+    
+            if (!response.ok) {
+                throw new Error(data.message || "Wishlist action failed");
+            }
+    
+            if (data.success) {
+                toggleWishlistButton(button, data.isInWishlist);
+            }
+    
         } catch (error) {
             console.error(error);
+            alert("Something went wrong. Please try again.");
         }
     });
+    
 });
