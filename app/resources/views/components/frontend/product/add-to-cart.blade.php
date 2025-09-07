@@ -33,8 +33,3 @@
         </svg>
     </x-frontend.button.icon-button>
 </div>
-<script>
-    window.App = {
-        isLoggedIn: true
-    };
-</script>

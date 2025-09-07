@@ -117,12 +117,12 @@ document.addEventListener("DOMContentLoaded", () => {
                     "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]').getAttribute("content"),
                     Accept: "application/json",
                 },
-                credentials: "same-origin", // ✅ ensure session cookies are sent
+                credentials: "same-origin",
             });
     
             const data = await response.json().catch(() => ({}));
     
-            // ✅ Handle unauthenticated case
+            //  Handle unauthenticated case
             if (response.status === 401 || data.message === "Unauthenticated.") {
                 window.location.href = "/login";
                 return;
