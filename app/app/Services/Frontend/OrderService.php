@@ -6,16 +6,18 @@ use App\Models\Client;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Payment;
+use App\Models\CartItem;
+use App\Repositories\OrderRepository;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Session;
 
 class OrderService
 {
     public function __construct(
         protected PaymentService $paymentService,
         protected ClientService $clientService,
-        protected CartService $cartService
+        protected CartService $cartService,
+        protected OrderRepository $orderRepo
     ) {}
 
     /**
@@ -24,73 +26,77 @@ class OrderService
     public function createOrderFromStripeSession(object $session): Order
     {
         $userId = $session->metadata->user_id ?? null;
-        $sessionKey = $session->metadata->session_key ?? null;
+        $paymentIntentId = $session->payment_intent ?? null;
 
-        if (!$userId || !$sessionKey) {
-            throw new \InvalidArgumentException("Invalid Stripe session metadata.");
+        if (!$userId || !$paymentIntentId) {
+            throw new \InvalidArgumentException("Stripe session is missing user_id or payment_intent.");
         }
 
         $user = \App\Models\User::findOrFail($userId);
 
-        $sessionData = Session::get($sessionKey, null);
-        if (!$sessionData) {
-            throw new \Exception("Session data not found for key: {$sessionKey}");
+        // Retrieve cart items from Stripe metadata
+        $items = [];
+        if (!empty($session->metadata->cart_items)) {
+            $items = json_decode($session->metadata->cart_items, true);
         }
 
-        $items = $sessionData['cart_items'] ?? [];
-        $clientData = $sessionData['client_data'] ?? [];
-        $totalAmount = $sessionData['total_amount'] ?? 0;
-
-        if (empty($items) || empty($clientData)) {
-            throw new \Exception("Cart items or client data missing in session.");
+        // Fallback to DB cart items
+        if (empty($items)) {
+            $items = CartItem::where('user_id', $userId)
+                ->with('product')
+                ->get()
+                ->map(fn($item) => [
+                    'id'       => $item->product_id,
+                    'quantity' => $item->quantity,
+                    'price'    => $item->product->price,
+                ])
+                ->toArray();
         }
 
-        return DB::transaction(function () use ($user, $items, $clientData, $totalAmount, $session, $sessionKey) {
-            // 1️⃣ Client
+        if (empty($items)) {
+            throw new \Exception("No cart items found for user {$userId}.");
+        }
+
+        // Retrieve client data from Stripe metadata
+        $clientData = [];
+        if (!empty($session->metadata->client_data)) {
+            $clientData = json_decode($session->metadata->client_data, true);
+        }
+
+        if (empty($clientData)) {
+            throw new \Exception("Client data missing for user {$userId}.");
+        }
+
+        $totalAmount = array_sum(array_map(fn($i) => $i['price'] * $i['quantity'], $items));
+
+        return DB::transaction(function () use ($user, $items, $clientData, $totalAmount, $paymentIntentId, $session) {
+
+            // 1️⃣ Get or create client
             $client = $this->clientService->getOrCreateClient($user, $clientData);
 
-            // 2️⃣ Payment
+            // 2️⃣ Create payment record
             $payment = $this->paymentService->createPayment([
                 'amount'         => $totalAmount,
                 'method'         => 'stripe',
                 'status'         => 'completed',
-                'transaction_id' => $session->payment_intent,
+                'transaction_id' => $paymentIntentId,
                 'metadata'       => json_encode([
-                    'stripe_session_id'   => $session->id,
-                    'stripe_payment_intent' => $session->payment_intent,
-                ])
+                    'stripe_session_id'    => $session->id ?? null,
+                    'stripe_payment_intent'=> $paymentIntentId,
+                ]),
             ]);
 
-            // 3️⃣ Order
-            $order = $this->createOrder($client, $payment, $items, $totalAmount);
-
-            // 4️⃣ Mark as paid
-            $order->update(['status' => 'paid']);
-
-            // 5️⃣ Clean session & cart
-            Session::forget($sessionKey);
-            $this->cartService->clearCart();
-
-            return $order;
-        });
-    }
-
-    /**
-     * Create an order with items
-     */
-    public function createOrder(Client $client, Payment $payment, array $items, float $totalAmount): Order
-    {
-        return DB::transaction(function () use ($client, $payment, $items, $totalAmount) {
-            $order = Order::create([
+            // 3️⃣ Create order using repository
+            $order = $this->orderRepo->create([
                 'client_id'    => $client->id,
                 'payment_id'   => $payment->id,
                 'total_amount' => $totalAmount,
                 'status'       => 'pending',
             ]);
 
+            // 4️⃣ Attach order items
             foreach ($items as $item) {
-                OrderItem::create([
-                    'order_id'   => $order->id,
+                $order->orderItems()->create([
                     'product_id' => $item['id'],
                     'quantity'   => $item['quantity'],
                     'price'      => $item['price'],
@@ -98,16 +104,28 @@ class OrderService
                 ]);
             }
 
-            return $order;
+            // 5️⃣ Mark order as paid
+            $this->orderRepo->update(['status' => 'paid'], $order->id);
+
+            // 6️⃣ Clear user's cart
+            $this->cartService->clearCart($user->id);
+
+            Log::info('Order created successfully from Stripe', [
+                'order_id'     => $order->id,
+                'user_id'      => $user->id,
+                'payment_id'   => $payment->id,
+                'total_amount' => $totalAmount,
+            ]);
+
+            return $order->fresh(['client', 'payment', 'orderItems.product']);
         });
     }
 
     /**
-     * Retrieve order with relations
+     * Find an order with relations
      */
     public function findOrder(int $orderId): Order
     {
-        return Order::with(['client', 'payment', 'orderItems.product'])
-                    ->findOrFail($orderId);
+        return $this->orderRepo->findWithRelations($orderId);
     }
 }

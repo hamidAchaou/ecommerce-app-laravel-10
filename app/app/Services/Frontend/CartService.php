@@ -9,11 +9,6 @@ class CartService
 {
     public function __construct(protected CartRepository $cartRepo) {}
 
-    public function addToCart(int $productId, int $quantity): void
-    {
-        $this->cartRepo->addItem($productId, $quantity, auth()->id());
-    }
-
     public function getItems(): Collection
     {
         return $this->cartRepo->getItems(auth()->id());
@@ -21,48 +16,36 @@ class CartService
 
     public function getTotal(): float
     {
-        return $this->getItems()->sum(fn($item) => $item['price'] * $item['quantity']);
+        return $this->cartRepo->getTotal(auth()->id());
     }
 
     public function getCartSummary(): array
     {
         $items = $this->getItems();
-        $total = $items->sum(fn($i) => $i['price'] * $i['quantity']);
-        $count = $items->sum(fn($i) => $i['quantity']);
-
         return [
-            'items'           => $items->values(),
-            'count'           => $count,
-            'total'           => $total,
-            'formatted_total' => $this->formatPrice($total),
-            'is_empty'        => $items->isEmpty(),
+            'items' => $items,
+            'total' => $items->sum(fn($item) => $item['price'] * $item['quantity']),
+            'count' => $items->count(),
         ];
     }
 
-    public function mergeGuestCartToUser(): void
+    public function addToCart(int $productId, int $quantity)
     {
-        if (!auth()->check()) return;
-
-        $this->cartRepo->mergeSessionToUser(auth()->id());
+        $this->cartRepo->addItem($productId, $quantity, auth()->id());
     }
 
-    public function updateCartItem(int $productId, int $quantity): void
+    public function updateCartItem(int $productId, int $quantity)
     {
         $this->cartRepo->updateItem($productId, $quantity, auth()->id());
     }
 
-    public function removeCartItem(int $productId): void
+    public function removeCartItem(int $productId)
     {
         $this->cartRepo->removeItem($productId, auth()->id());
     }
 
-    public function clearCart(): void
+    public function clearCart()
     {
         $this->cartRepo->clear(auth()->id());
-    }
-
-    protected function formatPrice(float $amount): string
-    {
-        return '$' . number_format($amount, 2);
     }
 }
