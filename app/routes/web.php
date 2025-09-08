@@ -76,7 +76,6 @@ Route::get('/about', [HomeController::class, 'about'])->name('about');
 // Checkout only for authenticated users
 Route::middleware('auth')->group(function () {
     Route::get('/checkout', [CheckoutController::class, 'index'])->name('checkout.index');
-    Route::post('/checkout', [CheckoutController::class, 'process'])->name('checkout.process');
     Route::post('/checkout/stripe', [CheckoutController::class, 'stripeCheckout'])->name('checkout.stripe');
     Route::get('/checkout/success', [CheckoutController::class, 'success'])->name('checkout.success');
     // Display payment page

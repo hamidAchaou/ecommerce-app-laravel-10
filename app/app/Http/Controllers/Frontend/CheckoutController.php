@@ -35,32 +35,20 @@ class CheckoutController extends Controller
         ]);
     }
 
-    /** Process direct checkout */
-    public function process(CheckoutRequest $request): RedirectResponse
-    {
-        try {
-            $order = $this->checkoutService->placeOrder($request->validated());
-
-            return redirect()->route('orders.show', $order->id)
-                ->with('success', 'Order placed successfully!');
-        } catch (\Exception $e) {
-            Log::error('Checkout process error', [
-                'message' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
-            ]);
-
-            return redirect()->back()->withErrors(['checkout' => $e->getMessage()]);
-        }
-    }
-
     public function stripeCheckout(CheckoutRequest $request): JsonResponse
     {
         try {
-            // Get validated data directly
             $validated = $request->validated();
+            $user = auth()->user();
+            
+            $client = $this->clientService->getOrCreateClient($user, $validated);
     
-            // Create the Stripe session
-            $session = $this->checkoutService->createStripeSession($validated);
+            $session = $this->checkoutService->createStripeSession([
+                ...$validated,
+                'client_id' => $client->id,
+                'user_id'   => $user->id,
+            ]);
+            // dd($session);
     
             return response()->json(['id' => $session->id]);
         } catch (\Exception $e) {
@@ -77,7 +65,6 @@ class CheckoutController extends Controller
             return response()->json(['error' => $e->getMessage()], $status);
         }
     }
-    
 
 
     /** Show success page after payment */
