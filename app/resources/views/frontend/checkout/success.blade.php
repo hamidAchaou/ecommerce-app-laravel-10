@@ -32,7 +32,7 @@
                         @foreach($order->orderItems as $item)
                             <div class="flex items-center justify-between py-4">
                                 <div class="flex items-center gap-4">
-                                    <img src="{{ $item->product->image_url ?? 'https://via.placeholder.com/80' }}"
+                                    <img src="{{ asset('storage/' . ($item->product->images->first()->image_path ?? 'placeholder.jpg')) }}"
                                          alt="{{ $item->product->title ?? 'Product' }}"
                                          class="w-16 h-16 object-cover rounded-lg border border-gray-200">
                                     <div>

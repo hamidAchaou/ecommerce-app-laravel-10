@@ -7,13 +7,16 @@ use App\Http\Controllers\Frontend\ProductController;
 use App\Http\Controllers\Frontend\CategoryController;
 use App\Http\Controllers\Frontend\CheckoutController;
 use App\Http\Controllers\ProfileController;
-use Illuminate\Http\Request; // Fixed: Correct Laravel Request import
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Frontend\StripeWebhookController;
 use App\Http\Controllers\Frontend\WishlistController;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Session;
+
+Route::post('/stripe/webhook', [StripeWebhookController::class, 'handle'])
+    ->withoutMiddleware([\App\Http\Middleware\VerifyCsrfToken::class]);
 
 /*
 |--------------------------------------------------------------------------
@@ -32,13 +35,14 @@ Route::view('/contact', 'frontend.contact')->name('contact');
 
 // Products
 Route::resource('products', ProductController::class);
-// Route::get('/categories/{category:slug}/products', [ProductController::class, 'categoryProducts'])
-//     ->name('categories.products');
 
 // Categories
 Route::resource('categories', CategoryController::class);
 
-Route::post('/stripe/webhook', [StripeWebhookController::class, 'handleWebhook']);
+// ⚠️ IMPORTANT: Stripe webhook MUST be outside middleware groups
+// This route should be accessible without CSRF protection
+Route::post('/stripe/webhook', [StripeWebhookController::class, 'handleWebhook'])
+    ->name('stripe.webhook');
 
 // Authenticated user profile
 Route::middleware(['auth'])->group(function () {
@@ -54,7 +58,7 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/password/change', [ProfileController::class, 'changePassword'])->name('password.update');
 });
 
-// ✅ Seller panel
+// Seller panel
 Route::middleware(['auth', 'role:seller'])->group(function () {
     Route::get('/seller', fn() => 'Seller Panel')->name('seller.panel');
 });
@@ -68,9 +72,9 @@ Route::delete('/cart', [CartController::class, 'clear'])->name('cart.clear');
 Route::delete('/cart/clear/all', [CartController::class, 'clearAll'])
     ->name('cart.clearAll');
 
-// contact
+// Contact
 Route::post('/contact', [HomeController::class, 'contact'])->name('contact.submit');
-// about
+// About
 Route::get('/about', [HomeController::class, 'about'])->name('about');
 
 // Checkout only for authenticated users
@@ -84,41 +88,29 @@ Route::middleware('auth')->group(function () {
     Route::post('/payment', [CheckoutController::class, 'processPayment'])->name('payment.process');
 });
 
-// Debug route - remove after fixing the issue
-Route::post('/debug/checkout', function (Request $request) {
-    return response()->json([
-        'auth_check' => auth()->check(),
-        'user_id' => auth()->id(),
-        'request_data' => $request->all(),
-        'stripe_config' => [
-            'key_exists' => !empty(config('stripe.key')),
-            'secret_exists' => !empty(config('stripe.secret')),
-        ]
-    ]);
-});
-
 // Orders for authenticated users
 Route::middleware('auth')->prefix('orders')->name('frontend.orders.')->group(function () {
     Route::get('/', [OrderController::class, 'index'])->name('index'); // My Orders list
     Route::get('/{order}', [OrderController::class, 'show'])->name('show'); // Order Details
 });
 
+// Wishlist for authenticated users
 Route::middleware(['auth'])->prefix('wishlist')->name('wishlist.')->group(function () {
     Route::get('/', [WishlistController::class, 'index'])->name('index');
     Route::post('/{product}', [WishlistController::class, 'store']);
     Route::delete('/{product}', [WishlistController::class, 'destroy']);
 });
-// Add this to your web.php routes for testing
+
+// Debug routes - remove in production
 Route::get('/debug/webhook-test', function () {
-    // Test if webhook is accessible
     $webhookUrl = route('stripe.webhook');
 
     return response()->json([
         'webhook_url' => $webhookUrl,
         'stripe_config' => [
-            'key_exists' => !empty(config('stripe.key')),
-            'secret_exists' => !empty(config('stripe.secret')),
-            'webhook_secret_exists' => !empty(config('stripe.webhook_secret')),
+            'key_exists' => !empty(config('services.stripe.key')),
+            'secret_exists' => !empty(config('services.stripe.secret')),
+            'webhook_secret_exists' => !empty(config('services.stripe.webhook_secret')),
         ],
         'database_tables' => [
             'orders' => DB::table('orders')->count(),
@@ -126,17 +118,23 @@ Route::get('/debug/webhook-test', function () {
             'payments' => DB::table('payments')->count(),
             'clients' => DB::table('clients')->count(),
         ],
-        'session_data' => [
-            'sessions_count' => count(Session::all()),
-            'stripe_sessions' => array_keys(array_filter(Session::all(), function ($key) {
-                return str_starts_with($key, 'stripe_checkout_');
-            }, ARRAY_FILTER_USE_KEY))
+    ]);
+});
+
+Route::post('/debug/checkout', function (Request $request) {
+    return response()->json([
+        'auth_check' => auth()->check(),
+        'user_id' => auth()->id(),
+        'request_data' => $request->all(),
+        'stripe_config' => [
+            'key_exists' => !empty(config('services.stripe.key')),
+            'secret_exists' => !empty(config('services.stripe.secret')),
         ]
     ]);
 });
 
-// ✅ Admin routes
+// Admin routes
 require __DIR__ . '/admin.php';
 
-// ✅ Auth routes
+// Auth routes
 require __DIR__ . '/auth.php';

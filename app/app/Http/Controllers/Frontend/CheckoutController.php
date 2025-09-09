@@ -6,17 +6,21 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Frontend\CheckoutRequest;
 use App\Services\Frontend\CheckoutService;
 use App\Services\Frontend\ClientService;
-use Illuminate\Http\RedirectResponse;
-use Illuminate\View\View;
-use Illuminate\Http\JsonResponse;
+use App\Services\Frontend\CartService;
+use App\Models\Order;
 use Illuminate\Http\Request;
+use Illuminate\Http\JsonResponse;
+use Illuminate\View\View;
 use Illuminate\Support\Facades\Log;
+use Stripe\Stripe;
+use Stripe\Checkout\Session;
 
 class CheckoutController extends Controller
 {
     public function __construct(
         private CheckoutService $checkoutService,
-        private ClientService $clientService
+        private ClientService $clientService,
+        private CartService $cartService,
     ) {}
 
     /** Show checkout page */
@@ -35,12 +39,18 @@ class CheckoutController extends Controller
         ]);
     }
 
+    /** Stripe checkout endpoint */
     public function stripeCheckout(CheckoutRequest $request): JsonResponse
-    {
+    {   
         try {
             $validated = $request->validated();
+
             $user = auth()->user();
-            
+            Log::info('Stripe checkout payload', [
+                'validated' => $validated,
+                'session_id' => $session->id ?? null
+            ]);
+                   
             $client = $this->clientService->getOrCreateClient($user, $validated);
     
             $session = $this->checkoutService->createStripeSession([
@@ -48,8 +58,11 @@ class CheckoutController extends Controller
                 'client_id' => $client->id,
                 'user_id'   => $user->id,
             ]);
-            // dd($session);
-    
+            // // dd($session);
+            // dd([
+            //     'validated' => $validated,
+            //     'session_id' => $session->id ?? null
+            // ]);
             return response()->json(['id' => $session->id]);
         } catch (\Exception $e) {
             Log::error('Stripe checkout error', [
@@ -66,15 +79,82 @@ class CheckoutController extends Controller
         }
     }
 
+    /** Create Stripe session */
+    private function createStripeSession(array $clientData, $user, $client, $cartItems)
+    {
+        Stripe::setApiKey(config('services.stripe.secret'));
 
-    /** Show success page after payment */
+        // Prepare line items for Stripe
+        $lineItems = $cartItems->map(function ($item) {
+            return [
+                'price_data' => [
+                    'currency' => 'usd',
+                    'product_data' => [
+                        'name' => $item['title'],
+                        'description' => $item['description'] ?? null
+                    ],
+                    'unit_amount' => intval($item['price'] * 100), // Convert to cents
+                ],
+                'quantity' => intval($item['quantity'])
+            ];
+        })->toArray();
+
+        // Prepare metadata
+        $metadata = [
+            'user_id' => $user->id,
+            'client_id' => $client->id,
+            'cart_items' => json_encode($cartItems->toArray()),
+            'client_data' => json_encode($clientData)
+        ];
+
+        // Create Stripe session
+        $session = Session::create([
+            'payment_method_types' => ['card'],
+            'line_items' => $lineItems,
+            'mode' => 'payment',
+            'success_url' => route('checkout.success') . '?session_id={CHECKOUT_SESSION_ID}',
+            'cancel_url' => route('checkout.index'),
+            'customer_email' => $user->email,
+            'metadata' => $metadata,
+        ]);
+
+        Log::info('Stripe session created successfully', [
+            'session_id' => $session->id,
+            'user_id' => $user->id,
+            'items_count' => $cartItems->count(),
+            'total_amount' => $cartItems->sum(fn($item) => $item['price'] * $item['quantity'])
+        ]);
+
+        return $session;
+    }
+
     public function success(Request $request): View
     {
-        $order = $this->checkoutService->getOrderFromStripeSession($request->query('session_id'));
-
+        $user = auth()->user();
+        if (!$user) {
+            return view('frontend.checkout.error', [
+                'message' => 'You must be logged in to view orders',
+            ]);
+        }
+    
+        // Retrieve latest order for this client
+        $order = $this->checkoutService->getLatestOrderForClient($user->client->id);
+    
+        if (!$order) {
+            Log::warning('Order not found for client', [
+                'client_id' => $user->client->id,
+            ]);
+    
+            return view('frontend.checkout.success', [
+                'order' => null,
+                'processing' => true,
+            ]);
+        }
+    
         return view('frontend.checkout.success', [
             'order' => $order,
-            'sessionId' => $request->query('session_id')
+            'processing' => false,
         ]);
     }
+    
 }

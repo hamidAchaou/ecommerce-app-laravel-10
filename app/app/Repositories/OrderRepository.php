@@ -33,8 +33,8 @@ class OrderRepository extends BaseRepository
             $search = $filters['search'];
             $query->where(function ($q) use ($search) {
                 $q->where('id', $search)
-                  ->orWhereHas('client.user', fn($q2) => $q2->where('name', 'like', "%$search%")
-                                                          ->orWhere('email', 'like', "%$search%"));
+                    ->orWhereHas('client.user', fn($q2) => $q2->where('name', 'like', "%$search%")
+                        ->orWhere('email', 'like', "%$search%"));
             });
         }
 
@@ -59,5 +59,13 @@ class OrderRepository extends BaseRepository
     public function findWithRelations(int $orderId)
     {
         return $this->model->with(['client.user', 'payment', 'orderItems.product'])->findOrFail($orderId);
+    }
+
+    public function findByStripeSession(string $sessionId): ?Order
+    {
+        return $this->model
+            ->with(['orderItems.product', 'client.user'])
+            ->where('stripe_session_id', $sessionId)
+            ->first();
     }
 }

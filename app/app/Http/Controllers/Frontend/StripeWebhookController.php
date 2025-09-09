@@ -3,160 +3,147 @@
 namespace App\Http\Controllers\Frontend;
 
 use App\Http\Controllers\Controller;
+use App\Models\User;
+use App\Models\OrderItem;
+use App\Models\Payment;
+use App\Models\Client;
+use App\Repositories\Frontend\CartRepository;
+use App\Repositories\OrderRepository;
+use App\Services\Frontend\ClientService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
-use App\Services\Frontend\OrderService;
-use App\Services\Frontend\PaymentService;
-use Stripe\Stripe;
+use Illuminate\Support\Facades\DB;
+use Symfony\Component\HttpFoundation\Response;
 use Stripe\Webhook;
+use Stripe\Checkout\Session as StripeSession;
 
 class StripeWebhookController extends Controller
 {
-    public function handleWebhook(Request $request, OrderService $orderService, PaymentService $paymentService)
-    {
-        // Log everything for debugging
-        Log::info('=== STRIPE WEBHOOK RECEIVED ===', [
-            'method' => $request->method(),
-            'url' => $request->fullUrl(),
-            'headers' => $request->headers->all(),
-            'payload_length' => strlen($request->getContent()),
-            'raw_payload' => $request->getContent()
-        ]);
+    protected CartRepository $cartRepository;
+    protected OrderRepository $orderRepository;
+    protected ClientService $clientService;
 
+    public function __construct(
+        CartRepository $cartRepository,
+        OrderRepository $orderRepository,
+        ClientService $clientService
+    ) {
+        $this->cartRepository = $cartRepository;
+        $this->orderRepository = $orderRepository;
+        $this->clientService  = $clientService;
+    }
+
+    /**
+     * Handle Stripe webhook events
+     */
+    public function handleWebhook(Request $request)
+    {
         $payload = $request->getContent();
         $sigHeader = $request->header('Stripe-Signature');
-        $secret = config('stripe.webhook_secret');
-
-        // For debugging - temporarily disable signature verification
-        // REMOVE THIS IN PRODUCTION!
-        if (app()->environment('local')) {
-            Log::warning('WEBHOOK SIGNATURE VERIFICATION DISABLED FOR LOCAL TESTING');
-            try {
-                $event = json_decode($payload, true, 512, JSON_THROW_ON_ERROR);
-                Log::info('Event decoded successfully', ['event_type' => $event['type']]);
-            } catch (\Exception $e) {
-                Log::error('Failed to decode webhook payload', ['error' => $e->getMessage()]);
-                return response()->json(['error' => 'Invalid payload'], 400);
-            }
-        } else {
-            // Production signature verification
-            if (empty($secret)) {
-                Log::error('Stripe webhook secret not configured');
-                return response()->json(['error' => 'Webhook secret not configured'], 500);
-            }
-
-            try {
-                $event = Webhook::constructEvent($payload, $sigHeader, $secret);
-                Log::info('Webhook signature verified successfully');
-            } catch (\Exception $e) {
-                Log::error('Stripe webhook signature verification failed', ['error' => $e->getMessage()]);
-                return response()->json(['error' => 'Invalid signature'], 400);
-            }
-        }
-
-        Log::info('Processing Stripe webhook event', [
-            'event_type' => $event['type'] ?? 'unknown',
-            'event_id' => $event['id'] ?? 'unknown',
-            'event_data' => $event['data'] ?? []
-        ]);
+        $endpointSecret = config('services.stripe.webhook_secret');
 
         try {
-            switch ($event['type']) {
-                case 'checkout.session.completed':
-                    return $this->handleCheckoutSessionCompleted($event['data']['object'], $orderService);
-                
-                case 'payment_intent.succeeded':
-                    Log::info('Payment intent succeeded - but we handle this in checkout.session.completed');
-                    return response()->json(['status' => 'acknowledged']);
-                
-                default:
-                    Log::info('Unhandled webhook event type', ['type' => $event['type']]);
-                    return response()->json(['status' => 'ignored']);
-            }
-        } catch (\Exception $e) {
-            Log::error('Webhook processing failed', [
-                'event_type' => $event['type'] ?? 'unknown',
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
-            ]);
-            
-            return response()->json(['status' => 'error', 'message' => $e->getMessage()], 200);
+            $event = Webhook::constructEvent($payload, $sigHeader, $endpointSecret);
+        } catch (\UnexpectedValueException $e) {
+            return response()->json(['error' => 'Invalid payload'], Response::HTTP_BAD_REQUEST);
+        } catch (\Stripe\Exception\SignatureVerificationException $e) {
+            return response()->json(['error' => 'Invalid signature'], Response::HTTP_BAD_REQUEST);
+        }
+
+        switch ($event->type) {
+            case 'checkout.session.completed':
+                return $this->processCheckoutCompleted($event->data->object);
+
+            default:
+                return response()->json(['status' => 'ignored']);
         }
     }
 
     /**
-     * Handle checkout session completed event
+     * Handle checkout.session.completed event
      */
-    private function handleCheckoutSessionCompleted(array $session, OrderService $orderService)
+    protected function processCheckoutCompleted(StripeSession $session)
     {
-        $sessionId = $session['id'];
-        $paymentIntentId = $session['payment_intent'] ?? null;
-        $userId = $session['metadata']['user_id'] ?? null;
-        $sessionKey = $session['metadata']['session_key'] ?? null;
-
-        Log::info('=== PROCESSING CHECKOUT SESSION COMPLETED ===', [
-            'session_id' => $sessionId,
-            'payment_intent' => $paymentIntentId,
-            'user_id' => $userId,
-            'session_key' => $sessionKey,
-            'full_session_data' => $session
+        Log::info('Processing checkout.session.completed', [
+            'session_id'     => $session->id,
+            'payment_status' => $session->payment_status,
+            'customer_email' => $session->customer_email,
         ]);
 
-        // Validate required data
-        if (!$userId) {
-            Log::error('User ID missing in session metadata');
-            return response()->json(['error' => 'User ID missing'], 400);
-        }
-
-        if (!$sessionKey) {
-            Log::error('Session key missing in session metadata');
-            return response()->json(['error' => 'Session key missing'], 400);
-        }
-
-        // Check if order already exists
-        if ($paymentIntentId) {
-            $existingOrder = \App\Models\Order::whereHas('payment', function($query) use ($paymentIntentId) {
-                $query->where('transaction_id', $paymentIntentId);
-            })->first();
-            
-            if ($existingOrder) {
-                Log::info('Order already exists for this payment', [
-                    'order_id' => $existingOrder->id,
-                    'payment_intent' => $paymentIntentId
-                ]);
-                return response()->json(['status' => 'already_processed', 'order_id' => $existingOrder->id]);
-            }
-        }
-
         try {
-            // Create the order
-            $order = $orderService->createOrderFromStripeSession((object)$session);
+            $sessionData = DB::table('stripe_sessions')
+                ->where('session_id', $session->id)
+                ->first();
 
-            Log::info('=== ORDER CREATED SUCCESSFULLY ===', [
-                'session_id' => $sessionId,
-                'order_id' => $order->id,
-                'client_id' => $order->client_id,
-                'payment_id' => $order->payment_id,
-                'total_amount' => $order->total_amount
+            if (!$sessionData) {
+                throw new \Exception("Stripe session not found in DB: {$session->id}");
+            }
+
+            $cartItems  = json_decode($sessionData->cart_items, true);
+            $clientData = json_decode($sessionData->client_data, true);
+            $user       = User::findOrFail($sessionData->user_id);
+
+            // Ensure client exists
+            $client = $user->client ?? $this->clientService->getOrCreateClient($user, $clientData);
+
+            $total = $session->amount_total / 100;
+
+            // Save payment
+            $payment = Payment::create([
+                'amount'         => $total,
+                'method'         => 'stripe',
+                'status'         => $session->payment_status === 'paid' ? 'completed' : 'pending',
+                'transaction_id' => $session->payment_intent,
+                'metadata'       => [
+                    'stripe_session_id' => $session->id,
+                    'customer_email'    => $session->customer_email,
+                ],
+            ]);
+
+            // Save order
+            $order = $this->orderRepository->create([
+                'client_id'        => $client->id,
+                'payment_id'       => $payment->id,
+                'total_amount'     => $total,
+                'status'           => $session->payment_status === 'paid' ? 'completed' : 'pending',
+                'stripe_session_id'=> $session->id,
+            ]);
+
+            // Save order items
+            foreach ($cartItems as $item) {
+                OrderItem::create([
+                    'order_id'   => $order->id,
+                    'product_id' => $item['id'],
+                    'quantity'   => $item['quantity'],
+                    'price'      => $item['price'],
+                ]);
+            }
+
+            // ✅ Clear cart via repository (client_id, not user_id)
+            $this->cartRepository->clear($client->id);
+
+            // Clean up stripe_sessions row
+            DB::table('stripe_sessions')->where('session_id', $session->id)->delete();
+
+            Log::info('Order created successfully from webhook', [
+                'order_id'   => $order->id,
+                'payment_id' => $payment->id,
+                'client_id'  => $client->id,
+                'total'      => $total,
             ]);
 
             return response()->json([
-                'status' => 'success', 
-                'order_id' => $order->id,
-                'client_id' => $order->client_id,
-                'payment_id' => $order->payment_id
+                'status'     => 'success',
+                'order_id'   => $order->id,
+                'payment_id' => $payment->id,
             ]);
 
-        } catch (\Exception $e) {
-            Log::error('=== ORDER CREATION FAILED ===', [
-                'session_id' => $sessionId,
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
-                'user_id' => $userId,
-                'session_key' => $sessionKey
+        } catch (\Throwable $e) {
+            Log::error('Error handling checkout.session.completed', [
+                'session_id' => $session->id,
+                'error'      => $e->getMessage(),
             ]);
-            
-            throw $e;
+            return response()->json(['error' => 'Processing failed'], Response::HTTP_INTERNAL_SERVER_ERROR);
         }
     }
 }

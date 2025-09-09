@@ -80,3 +80,72 @@ window.addEventListener("load", window.initChoices);
 
 // ================ Chart.js ====================
 window.Chart = Chart;
+
+// Add this to your success page or global script
+function clearLocalCart() {
+    // Clear localStorage cart if you're using client-side storage
+    if (typeof(Storage) !== "undefined") {
+        localStorage.removeItem('cart');
+        localStorage.removeItem('cartItems');
+        localStorage.removeItem('cartTotal');
+    }
+
+    // Clear sessionStorage cart if you're using it
+    if (typeof(Storage) !== "undefined") {
+        sessionStorage.removeItem('cart');
+        sessionStorage.removeItem('cartItems');
+        sessionStorage.removeItem('cartTotal');
+    }
+
+    // Dispatch custom event to notify other components
+    window.dispatchEvent(new CustomEvent('cartCleared'));
+    
+    console.log('Local cart cleared after successful payment');
+}
+
+// Call this function on the success page
+document.addEventListener('DOMContentLoaded', function() {
+    // Only clear cart if we're on the success page and have a valid session
+    if (window.location.pathname.includes('checkout/success') && 
+        new URLSearchParams(window.location.search).get('session_id')) {
+        clearLocalCart();
+    }
+});
+
+// Optional: Add to your Alpine.js checkout component
+function enhanceCheckoutPage() {
+    return {
+        // ... existing checkout page data ...
+        
+        init() {
+            // Listen for successful payment completion
+            window.addEventListener('cartCleared', () => {
+                this.cartItems = [];
+                console.log('Cart cleared via event');
+            });
+        },
+
+        // Enhanced clear cart method
+        async clearCart() {
+            try {
+                // Clear server-side cart
+                const res = await fetch('/cart/clear/all', {
+                    method: 'DELETE',
+                    headers: {
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                    }
+                });
+                
+                if (res.ok) {
+                    this.cartItems = [];
+                    clearLocalCart(); // Also clear local storage
+                }
+            } catch (err) {
+                console.error('Error clearing cart:', err);
+            }
+        },
+
+        // ... rest of your checkout methods ...
+    }
+}

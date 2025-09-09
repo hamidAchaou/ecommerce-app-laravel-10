@@ -12,6 +12,6 @@ class MergeGuestCart
 
     public function handle(Login|Registered $event): void
     {
-        $this->cartService->mergeGuestCartToUser();
+        // $this->cartService->mergeGuestCartToUser();
     }
 }

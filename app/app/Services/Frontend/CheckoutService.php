@@ -2,15 +2,17 @@
 
 namespace App\Services\Frontend;
 
+use App\Models\Order;
+use App\Repositories\OrderRepository;
 use App\Services\Frontend\CartService;
 use App\Services\Frontend\ClientService;
 use App\Services\Frontend\OrderService;
 use App\Services\Frontend\PaymentService;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Session;
 use Stripe\Stripe;
 use Stripe\Checkout\Session as StripeSession;
 use Exception;
+use Illuminate\Support\Facades\DB;
 
 class CheckoutService
 {
@@ -18,7 +20,8 @@ class CheckoutService
         private CartService $cartService,
         private ClientService $clientService,
         private OrderService $orderService,
-        private PaymentService $paymentService
+        private PaymentService $paymentService,
+        private OrderRepository $orderRepository
     ) {}
 
     /** Get cart data for checkout */
@@ -57,7 +60,7 @@ class CheckoutService
     }
 
     /** Create Stripe checkout session */
-    public function createStripeSession(array $data)
+    public function createStripeSession(array $clientData)
     {
         $user = auth()->user();
         if (!$user) throw new Exception("User must be logged in");
@@ -65,27 +68,20 @@ class CheckoutService
         $items = $this->cartService->getItems();
         if ($items->isEmpty()) throw new Exception("Cart is empty");
 
-        Stripe::setApiKey(config('stripe.secret'));
+        Stripe::setApiKey(config('services.stripe.secret'));
 
+        // Prepare Stripe line items
         $lineItems = $items->map(fn($item) => [
             'price_data' => [
                 'currency' => 'usd',
                 'product_data' => [
                     'name' => $item['title'],
-                    'description' => $item['description'] ?? null
+                    'description' => $item['description'] ?? null,
                 ],
                 'unit_amount' => intval($item['price'] * 100),
             ],
-            'quantity' => intval($item['quantity'])
+            'quantity' => intval($item['quantity']),
         ])->toArray();
-
-        $sessionKey = 'stripe_checkout_' . uniqid();
-        Session::put($sessionKey, [
-            'user_id' => $user->id,
-            'cart_items' => $items->toArray(),
-            'client_data' => $data,
-            'created_at' => now()->timestamp
-        ]);
 
         $session = StripeSession::create([
             'payment_method_types' => ['card'],
@@ -93,29 +89,62 @@ class CheckoutService
             'mode' => 'payment',
             'success_url' => route('checkout.success') . '?session_id={CHECKOUT_SESSION_ID}',
             'cancel_url' => route('checkout.index'),
-            'metadata' => ['session_key' => $sessionKey],
             'customer_email' => $user->email,
         ]);
 
-        Log::info('Stripe session created', ['session_id' => $session->id]);
+        // Store session info in DB (Stripe session ID + client/cart)
+        DB::table('stripe_sessions')->insert([
+            'session_id' => $session->id,
+            'user_id' => $user->id,
+            'cart_items' => json_encode($items->toArray()),
+            'client_data' => json_encode($clientData),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        Log::info('Stripe session created', [
+            'session_id' => $session->id,
+        ]);
 
         return $session;
     }
 
-    /** Retrieve order from Stripe session */
+    /**
+     * Retrieve order by Stripe session (stateless)
+     */
     public function getOrderFromStripeSession(?string $sessionId)
     {
-        if (!$sessionId) return null;
+        if (empty($sessionId)) return null;
 
         try {
-            Stripe::setApiKey(config('stripe.secret'));
-            $session = StripeSession::retrieve($sessionId);
-
-            return \App\Models\Order::where('payment_id', $session->payment_intent)->first();
-        } catch (\Exception $e) {
-            Log::error('Error retrieving Stripe session', [
+            return $this->orderRepository->findByStripeSession($sessionId);
+        } catch (\Throwable $e) {
+            Log::error('Error retrieving order for Stripe session', [
                 'session_id' => $sessionId,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
+            ]);
+            return null;
+        }
+    }
+
+    /**
+     * Retrieve the latest order for a given client
+     */
+    public function getLatestOrderForClient(?int $clientId): ?Order
+    {
+        if (!$clientId) {
+            return null;
+        }
+
+        try {
+            return Order::with(['orderItems.product', 'client.user'])
+                        ->where('client_id', $clientId)
+                        ->orderBy('created_at', 'desc')
+                        ->first();
+        } catch (\Throwable $e) {
+            Log::error('Error retrieving latest order for client', [
+                'client_id' => $clientId,
+                'error' => $e->getMessage(),
             ]);
             return null;
         }
