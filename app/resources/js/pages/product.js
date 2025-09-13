@@ -1,12 +1,12 @@
 document.addEventListener("DOMContentLoaded", () => {
     /**
-     * Quantity controls
+     * ===============================
+     * Quantity Controls
+     * ===============================
      */
     document.addEventListener("click", (e) => {
         if (e.target.matches(".quantity-increment, .quantity-decrement")) {
-            const input = e.target
-                .closest("div")
-                .querySelector(".quantity-input");
+            const input = e.target.closest("div").querySelector(".quantity-input");
             if (!input) return;
 
             const min = parseInt(input.getAttribute("min")) || 1;
@@ -21,8 +21,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     });
 
-    const quantityInputs = document.querySelectorAll(".quantity-input");
-    quantityInputs.forEach((input) => {
+    document.querySelectorAll(".quantity-input").forEach((input) => {
         input.addEventListener("change", () => {
             const min = parseInt(input.getAttribute("min")) || 1;
             const max = parseInt(input.getAttribute("max")) || 99;
@@ -32,7 +31,9 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     /**
-     * Price filter sliders
+     * ===============================
+     * Price Filter Sliders
+     * ===============================
      */
     const minSlider = document.getElementById("minSlider");
     const maxSlider = document.getElementById("maxSlider");
@@ -65,39 +66,21 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     /**
-     * Wishlist buttons
+     * ===============================
+     * Wishlist Buttons
+     * ===============================
      */
     const toggleWishlistButton = (button, isActive) => {
         const svg = button.querySelector("svg");
         if (!svg) return;
 
         if (isActive) {
-            button.classList.add(
-                "bg-red-600",
-                "text-white",
-                "border-red-600",
-                "hover:bg-red-700"
-            );
-            button.classList.remove(
-                "bg-white",
-                "text-red-600",
-                "border-red-600",
-                "hover:bg-red-50"
-            );
+            button.classList.add("bg-red-600", "text-white", "border-red-600", "hover:bg-red-700");
+            button.classList.remove("bg-white", "text-red-600", "hover:bg-red-50");
             svg.setAttribute("fill", "currentColor");
         } else {
-            button.classList.remove(
-                "bg-red-600",
-                "text-white",
-                "border-red-600",
-                "hover:bg-red-700"
-            );
-            button.classList.add(
-                "bg-white",
-                "text-red-600",
-                "border-red-600",
-                "hover:bg-red-50"
-            );
+            button.classList.remove("bg-red-600", "text-white", "border-red-600", "hover:bg-red-700");
+            button.classList.add("bg-white", "text-red-600", "hover:bg-red-50");
             svg.setAttribute("fill", "none");
         }
     };
@@ -105,10 +88,10 @@ document.addEventListener("DOMContentLoaded", () => {
     document.addEventListener("click", async (e) => {
         const button = e.target.closest(".wishlist-btn");
         if (!button) return;
-    
+
         const productId = button.dataset.productId;
         const isActive = button.classList.contains("bg-red-600");
-    
+
         try {
             const response = await fetch(`/wishlist/${productId}`, {
                 method: isActive ? "DELETE" : "POST",
@@ -119,27 +102,53 @@ document.addEventListener("DOMContentLoaded", () => {
                 },
                 credentials: "same-origin",
             });
-    
+
             const data = await response.json().catch(() => ({}));
-    
-            //  Handle unauthenticated case
+
             if (response.status === 401 || data.message === "Unauthenticated.") {
                 window.location.href = "/login";
                 return;
             }
-    
+
             if (!response.ok) {
                 throw new Error(data.message || "Wishlist action failed");
             }
-    
+
             if (data.success) {
                 toggleWishlistButton(button, data.isInWishlist);
             }
-    
         } catch (error) {
             console.error(error);
             alert("Something went wrong. Please try again.");
         }
     });
-    
+
+    /**
+     * ===============================
+     * Category Filters
+     * ===============================
+     */
+    const categoryForm = document.querySelector("form[action*='products']");
+    if (categoryForm) {
+        const allCategory = categoryForm.querySelector("input[type='radio'][name='category[]'][value='']");
+        const categoryCheckboxes = categoryForm.querySelectorAll("input[type='checkbox'][name='category[]']");
+
+        if (allCategory) {
+            allCategory.addEventListener("change", () => {
+                if (allCategory.checked) {
+                    categoryCheckboxes.forEach((checkbox) => (checkbox.checked = false));
+                }
+                categoryForm.submit();
+            });
+        }
+
+        categoryCheckboxes.forEach((checkbox) => {
+            checkbox.addEventListener("change", () => {
+                if (checkbox.checked && allCategory.checked) {
+                    allCategory.checked = false;
+                }
+                categoryForm.submit();
+            });
+        });
+    }
 });

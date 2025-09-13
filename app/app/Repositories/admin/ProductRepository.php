@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Repositories\admin;
+namespace App\Repositories\Admin;
 
 use App\Models\Product;
 use App\Repositories\BaseRepository;
@@ -8,54 +8,61 @@ use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 
 class ProductRepository extends BaseRepository
 {
-    /**
-     * Specify the model class for the repository.
-     *
-     * @return string
-     */
     protected function model(): string
     {
         return Product::class;
     }
 
     /**
-     * Get paginated products with optional filters and eager loading.
-     *
-     * @param array $filters
-     * @param int $perPage
-     * @return LengthAwarePaginator
+     * Get paginated products with optional filters, eager loading & sorting.
      */
     public function getProductsPaginate(array $filters = [], int $perPage = 12): LengthAwarePaginator
     {
-        $query = $this->model->with('category');
-    
-        // Search by title or description
+        $query = $this->model->with(['category', 'images']);
+
+        // 🔍 Search by title or description
         if (!empty($filters['search'])) {
             $query->where(function ($q) use ($filters) {
                 $q->where('title', 'LIKE', "%{$filters['search']}%")
                   ->orWhere('description', 'LIKE', "%{$filters['search']}%");
             });
         }
-    
-        // Ensure category_ids is always an array
+
+        // 📂 Filter by categories
         $categoryIds = $filters['category_ids'] ?? [];
         if (!is_array($categoryIds)) {
             $categoryIds = [$categoryIds];
         }
-    
-        // Filter by multiple categories
-        if (!empty($categoryIds) && !(count($categoryIds) === 1 && $categoryIds[0] === "")) {
+        $categoryIds = array_values(array_filter($categoryIds));
+
+        if (!empty($categoryIds)) {
             $query->whereIn('category_id', $categoryIds);
         }
-    
-        // Filter by price range
+
+        // 💰 Filter by price range
         $min = $filters['min'] ?? 0;
         $max = $filters['max'] ?? 500;
         $query->whereBetween('price', [$min, $max]);
-    
-        return $query->orderBy('created_at', 'desc')->paginate($perPage);
+
+        // 📊 Apply sorting
+        $sort = $filters['sort'] ?? 'default';
+        switch ($sort) {
+            case 'newest':
+                $query->orderBy('created_at', 'desc');
+                break;
+            case 'price_asc':
+                $query->orderBy('price', 'asc');
+                break;
+            case 'price_desc':
+                $query->orderBy('price', 'desc');
+                break;
+            default:
+                $query->orderBy('created_at', 'desc'); // default fallback
+        }
+
+        return $query->paginate($perPage);
     }
- 
+
     public function getLatestProducts(int $perPage = 10)
     {
         return $this->model
@@ -72,4 +79,4 @@ class ProductRepository extends BaseRepository
             ->limit($limit)
             ->get();
     }
-    }
+}

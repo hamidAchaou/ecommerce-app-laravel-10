@@ -24,14 +24,14 @@ class ProductController extends Controller
             'category_ids' => $request->input('category', []),
             'min' => $request->input('min', 0),
             'max' => $request->input('max', 500),
+            'sort' => $request->input('sort', 'default'), // ✅ Added sort
         ];
-
+    
         $products = $this->productRepo->getProductsPaginate(filters: $filters, perPage: 9);
         $categories = $this->categoryRepo->all();
-
+    
         return view('frontend.products.index', compact('products', 'categories'));
     }
-
 
     /**
      * Display a single product details page.
@@ -55,8 +55,8 @@ class ProductController extends Controller
         // dd($relatedProducts->first()->images);
         return view('frontend.products.show', [
             'product' => $product,
-            'relatedProducts' => $relatedProducts->getCollection(),
-        ]);
+            'relatedProducts' => $relatedProducts,
+        ]);        
     }
 
     /**
