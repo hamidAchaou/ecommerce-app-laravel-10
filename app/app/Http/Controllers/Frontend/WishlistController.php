@@ -9,20 +9,29 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
+use Illuminate\View\View;
 
 class WishlistController extends Controller
 {
-    public function __construct(protected WishlistRepository $wishlistRepo)
-    {
+    public function __construct(
+        protected readonly WishlistRepository $wishlistRepo
+    ) {
         $this->middleware('auth');
     }
 
-    public function index()
+    /**
+     * Display the user's wishlist.
+     */
+    public function index(): View
     {
         $wishlist = $this->wishlistRepo->getUserWishlist(Auth::id());
+
         return view('frontend.wishlist.index', compact('wishlist'));
     }
 
+    /**
+     * Add a product to the wishlist.
+     */
     public function store(Product $product, Request $request): JsonResponse
     {
         if (!Auth::check()) {
@@ -31,41 +40,48 @@ class WishlistController extends Controller
                 'message' => 'Unauthenticated.'
             ], 401);
         }
-    
+
         try {
-            if (!$this->wishlistRepo->exists(Auth::id(), $product->id)) {
+            $userId = Auth::id();
+
+            if (!$this->wishlistRepo->exists($userId, $product->id)) {
                 $this->wishlistRepo->create([
-                    'user_id' => Auth::id(),
+                    'user_id'    => $userId,
                     'product_id' => $product->id,
                 ]);
             }
-    
+
             return response()->json([
-                'success' => true,
-                'message' => 'Product added to wishlist',
+                'success'      => true,
+                'message'      => 'Product added to wishlist',
                 'isInWishlist' => true,
             ]);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             Log::error("Wishlist add error: {$e->getMessage()}");
+
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to add product to wishlist',
             ], 500);
         }
-    }    
+    }
 
+    /**
+     * Remove a product from the wishlist.
+     */
     public function destroy(Product $product): JsonResponse
     {
         try {
             $this->wishlistRepo->remove(Auth::id(), $product->id);
 
             return response()->json([
-                'success' => true,
-                'message' => 'Product removed from wishlist',
+                'success'      => true,
+                'message'      => 'Product removed from wishlist',
                 'isInWishlist' => false,
             ]);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             Log::error("Wishlist remove error: {$e->getMessage()}");
+
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to remove from wishlist',
