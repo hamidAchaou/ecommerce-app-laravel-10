@@ -1,11 +1,24 @@
 @props(['stock'])
 
-<p class="mt-2 font-semibold {{ $stock > 5 ? 'text-morocco-green' : 'text-morocco-red' }}">
+{{-- Stock Status with accessibility --}}
+<p class="mt-2 font-semibold"
+   aria-live="polite"
+   aria-atomic="true"
+   itemprop="availability"
+   itemscope
+   itemtype="https://schema.org/Product">
+
     @if($stock > 5)
-        In Stock
+        <span class="text-morocco-green" itemprop="availability" content="InStock">
+            In Stock
+        </span>
     @elseif($stock > 0)
-        Only {{ $stock }} left in stock — order soon!
+        <span class="text-yellow-600" itemprop="availability" content="InStock">
+            Only {{ $stock }} left in stock — order soon!
+        </span>
     @else
-        Out of Stock
+        <span class="text-morocco-red" itemprop="availability" content="OutOfStock">
+            Out of Stock
+        </span>
     @endif
 </p>

@@ -17,7 +17,7 @@
                 and woodwork.
             </p>
         </div>
-        <div class="absolute inset-0 opacity-10 bg-[url('/assets/images/pattern-morocco.webp')] bg-repeat"></div>
+        <div class="absolute inset-0 opacity-10 bg-[url('assets/images/pattern-morocco.webp')] bg-repeat"></div>
     </section>
 
     {{-- Categories Section --}}

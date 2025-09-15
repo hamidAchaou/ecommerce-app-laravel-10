@@ -39,6 +39,11 @@ class ProductRepository extends BaseRepository
             $query->whereIn('category_id', $categoryIds);
         }
 
+        // ❌ Exclude specific product
+        if (!empty($filters['exclude_id'])) {
+            $query->where('id', '!=', $filters['exclude_id']);
+        }
+
         // 💰 Filter by price range
         $min = $filters['min'] ?? 0;
         $max = $filters['max'] ?? 500;

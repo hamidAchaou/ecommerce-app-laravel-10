@@ -55,7 +55,6 @@ Route::middleware(['auth'])->group(function () {
 // Change password form
 Route::middleware(['auth'])->group(function () {
     Route::get('/password/change', [ProfileController::class, 'changePasswordForm'])->name('password.change');
-    Route::post('/password/change', [ProfileController::class, 'changePassword'])->name('password.update');
 });
 
 // Seller panel

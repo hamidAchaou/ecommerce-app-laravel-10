@@ -1,19 +1,30 @@
 @props(['product'])
 
-<article class="group relative bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden border border-gray-100 max-w-sm mx-auto">
+@php
+    // Use primary image first, fallback to first image, then placeholder
+    $primaryImage = $product->images->firstWhere('is_primary', 1) ?? $product->images->first();
+    $imagePath = $primaryImage ? asset('storage/' . $primaryImage->image_path) : asset('storage/images/placeholder.jpg');
+    $imageAlt = $primaryImage->alt_text ?? $product->title ?? 'Moroccan handcrafted product';
+
+    // Short description for SEO and card display
+    $shortDescription = $product->short_description ?? Str::limit(strip_tags($product->description), 80, '...');
+@endphp
+
+<article class="group relative bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden border border-gray-100 max-w-sm mx-auto"
+         itemscope itemtype="https://schema.org/Product">
 
     {{-- Product Image --}}
-    <a href="{{ route('products.show', $product->id) }}" 
-       class="block focus:outline-none focus:ring-4 focus:ring-morocco-blue/20">
+    <a href="{{ route('products.show', $product->id) }}" class="block focus:outline-none focus:ring-4 focus:ring-morocco-blue/20" itemprop="url">
         <figure class="relative w-full h-80 bg-morocco-ivory overflow-hidden">
             <img 
-                src="{{ asset('storage/' . ($product->images->first()->image_path ?? 'placeholder.jpg')) }}"
-                alt="{{ $product->title ?? 'Moroccan handcrafted product' }}"
+                src="{{ $imagePath }}"
+                alt="{{ $imageAlt }}"
                 loading="lazy"
                 decoding="async"
-                class="w-full h-full object-cover object-center transform group-hover:scale-110 transition-transform duration-500 ease-out"
                 width="400"
                 height="400"
+                class="w-full h-full object-cover object-center transform group-hover:scale-110 transition-transform duration-500 ease-out"
+                itemprop="image"
             >
 
             {{-- Badges (New / Sale) --}}
@@ -30,7 +41,7 @@
                 @endif
             </div>
 
-            {{-- Quick View Button (Visible on Hover) --}}
+            {{-- Quick View Button --}}
             <button class="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-white/90 p-2 rounded-full shadow-md hover:bg-morocco-blue hover:text-white focus:outline-none focus:ring-2 focus:ring-morocco-blue"
                     aria-label="Quick view {{ $product->title }}">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -42,19 +53,19 @@
     </a>
 
     {{-- Product Info --}}
-    <div class="p-6">
-        <h2 class="text-xl font-semibold text-gray-900 group-hover:text-morocco-blue transition-colors duration-300 line-clamp-1">
+    <div class="p-6" itemprop="description">
+        <h2 class="text-xl font-semibold text-gray-900 group-hover:text-morocco-blue transition-colors duration-300 line-clamp-1" itemprop="name">
             {{ $product->title }}
         </h2>
 
         <p class="mt-2 text-sm text-gray-500 line-clamp-2 leading-relaxed">
-            {{ $product->short_description ?? Str::limit(strip_tags($product->description), 80, '...') }}
+            {{ $shortDescription }}
         </p>
 
         {{-- Price and Rating --}}
-        <div class="mt-4 flex items-center justify-between">
+        <div class="mt-4 flex items-center justify-between" itemprop="offers" itemscope itemtype="https://schema.org/Offer">
             <div class="flex items-baseline gap-2">
-                <p class="text-2xl font-bold text-morocco-red">
+                <p class="text-2xl font-bold text-morocco-red" itemprop="price">
                     ${{ number_format($product->price, 2) }}
                 </p>
                 @if($product->old_price ?? false)
@@ -62,7 +73,10 @@
                         ${{ number_format($product->old_price, 2) }}
                     </p>
                 @endif
+                <meta itemprop="priceCurrency" content="USD" />
+                <link itemprop="availability" href="https://schema.org/InStock" />
             </div>
+
             <div class="flex items-center gap-1">
                 <svg class="h-4 w-4 text-morocco-yellow" fill="currentColor" viewBox="0 0 20 20">
                     <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />

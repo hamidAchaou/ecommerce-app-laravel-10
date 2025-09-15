@@ -38,7 +38,7 @@ class ProductController extends Controller
      */
     public function show(int $id): View
     {
-        $product = $this->productRepo->find($id);
+        $product = $this->productRepo->find($id, ['category', 'images']);
 
         if (!$product) {
             throw new NotFoundHttpException("Product not found");
@@ -59,35 +59,13 @@ class ProductController extends Controller
     }
 
     /**
-     * Display products under a specific category.
-     */
-    public function categoryProducts(string $categorySlug, Request $request): View
-    {
-        $category = $this->categoryRepo->getBySlug($categorySlug);
-
-        if (!$category) {
-            throw new NotFoundHttpException("Category not found");
-        }
-
-        $filters = $this->extractFilters($request);
-        $filters['category_ids'] = [$category->id];
-
-        $products = $this->productRepo->getProductsPaginate(
-            filters: $filters,
-            perPage: 12
-        );
-
-        return view('frontend.products.index', compact('products', 'category'));
-    }
-
-    /**
      * Extract common filters from request.
      */
     private function extractFilters(Request $request): array
     {
         return [
             'search'       => $request->input('search'),
-            'category_ids' => $request->input('category', []),
+            'category_ids' => array_filter((array) $request->input('category', [])),
             'min'          => (float) $request->input('min', 0),
             'max'          => (float) $request->input('max', 500),
             'sort'         => $request->input('sort', 'default'),
