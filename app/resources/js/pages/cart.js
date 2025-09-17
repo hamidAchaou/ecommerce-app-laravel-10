@@ -30,10 +30,10 @@ document.addEventListener('alpine:init', () => {
                         'X-CSRF-TOKEN': this.getCsrfToken()
                     }
                 });
-
+        
                 if (response.ok) {
                     const data = await response.json();
-                    this.cartItems = data.cartItems || [];
+                    this.cartItems = Array.isArray(data.cartItems) ? data.cartItems : [];
                     this.updateCartBadge();
                 } else {
                     console.warn('Failed to load cart:', response.status);
@@ -43,8 +43,7 @@ document.addEventListener('alpine:init', () => {
                 console.error('Error loading cart:', error);
                 this.cartItems = [];
             }
-        },
-
+        },        
         async addToCart(productId, quantity = 1, buttonElement = null) {
             const key = `${productId}-${quantity}`;
             
@@ -208,16 +207,18 @@ document.addEventListener('alpine:init', () => {
 
         // Helper methods
         getCartTotal() {
+            if (!Array.isArray(this.cartItems)) return 0;
             return this.cartItems.reduce((sum, item) => {
-                return sum + (parseFloat(item.price) * parseInt(item.quantity));
+                return sum + (parseFloat(item.price) * parseInt(item.quantity || 0));
             }, 0);
         },
-
+        
         getCartCount() {
+            if (!Array.isArray(this.cartItems)) return 0;
             return this.cartItems.reduce((sum, item) => {
-                return sum + parseInt(item.quantity);
+                return sum + parseInt(item.quantity || 0);
             }, 0);
-        },
+        },        
 
         updateCartBadge() {
             const badge = document.getElementById('cart-count');

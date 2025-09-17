@@ -13,21 +13,21 @@ class CartController extends Controller
     public function index(Request $request)
     {
         $summary = $this->cartService->getCartSummary();
-
+    
         if ($request->wantsJson()) {
             return response()->json([
-                'cartItems' => $summary['items'],
+                'cartItems' => array_values($summary['items']->toArray() ?? []), // always array
                 'subtotal'  => $summary['total'],
                 'count'     => $summary['count'],
             ]);
         }
-
+    
         return view('frontend.cart.index', [
             'cartItems' => $summary['items'],
             'subtotal'  => $summary['total'],
         ]);
     }
-
+    
     public function store(Request $request)
     {
         $data = $request->validate([
@@ -41,11 +41,12 @@ class CartController extends Controller
     
         return response()->json([
             'message'    => 'Product added to cart successfully!',
-            'cartItems'  => $summary['items'],
+            'cartItems'  => array_values($summary['items']->toArray() ?? []), // ensure array
             'subtotal'   => $summary['total'],
             'count'      => $summary['count'],
         ]);
     }
+    
     
     public function update(Request $request, int $id)
     {
