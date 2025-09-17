@@ -3,41 +3,45 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
-use App\Models\Product;
-use App\Models\Category;
-use App\Models\Order;
-use App\Repositories\admin\ProductRepository;
+use App\Repositories\Admin\ProductRepository;
+use App\Repositories\Admin\CategoryRepository;
+use App\Repositories\OrderRepository;
 
 class DashboardController extends Controller
 {
-    protected ProductRepository $productRepository;
+    protected ProductRepository $productRepo;
+    protected CategoryRepository $categoryRepo;
+    protected OrderRepository $orderRepo;
 
-    public function __construct(ProductRepository $productRepository)
-    {
-        $this->productRepository = $productRepository;
+    public function __construct(
+        ProductRepository $productRepo,
+        CategoryRepository $categoryRepo,
+        OrderRepository $orderRepo
+    ) {
+        $this->productRepo = $productRepo;
+        $this->categoryRepo = $categoryRepo;
+        $this->orderRepo = $orderRepo;
     }
 
     public function index()
     {
-        $categories = Category::withCount('products')->get();
-    
+        // Homepage categories (limit handled in repository)
+        $categories = $this->categoryRepo->getHomepageCategories();
+
+        // Dashboard statistics
         $stats = [
-            'total_products' => Product::count(),
-            'total_categories' => Category::count(),
-            'total_orders' => Order::count(),
-            'total_revenue' => Order::sum('total_amount'),
+            'total_products'   => $this->productRepo->countAll(),
+            'total_categories' => $this->categoryRepo->countAll(),
+            'total_orders'     => $this->orderRepo->countAll(),
+            'total_revenue'    => $this->orderRepo->sumAll('total_amount'),
         ];
-    
-        $monthlySales = Order::selectRaw('MONTHNAME(created_at) as month, SUM(total_amount) as total')
-        ->groupBy('month')
-        ->orderByRaw('MIN(created_at)')
-        ->pluck('total', 'month')
-        ->toArray(); // <-- convert here    
-    
-        $menuGroups = config('admin.menu'); // Move menu to config/admin.php
-    
+
+        // Monthly sales (move aggregation logic to repository for performance)
+        $monthlySales = $this->orderRepo->getMonthlySales();
+
+        // Admin menu from config
+        $menuGroups = config('admin.menu');
+
         return view('admin.dashboard.index', compact('categories', 'stats', 'monthlySales', 'menuGroups'));
     }
-    
 }

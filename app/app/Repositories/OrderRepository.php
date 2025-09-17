@@ -68,4 +68,24 @@ class OrderRepository extends BaseRepository
             ->where('stripe_session_id', $sessionId)
             ->first();
     }
+
+    public function countAll(array $filters = []): int
+    {
+        return $filters ? $this->buildFilteredQuery($filters)->count() : $this->model->count();
+    }
+
+    public function sumAll(string $column, array $filters = []): float
+    {
+        return $filters ? $this->buildFilteredQuery($filters)->sum($column) : $this->model->sum($column);
+    }
+
+    public function getMonthlySales(): array
+    {
+        return $this->model
+            ->selectRaw('MONTHNAME(created_at) as month, SUM(total_amount) as total')
+            ->groupByRaw('MONTH(created_at), MONTHNAME(created_at)')
+            ->orderByRaw('MIN(created_at)')
+            ->pluck('total', 'month')
+            ->toArray();
+    }
 }

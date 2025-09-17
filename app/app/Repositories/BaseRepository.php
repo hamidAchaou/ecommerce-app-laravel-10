@@ -73,20 +73,20 @@ abstract class BaseRepository
     public function find(mixed $id, array $with = []): ?Model
     {
         $query = $this->model->newQuery();
-    
+
         if (!empty($with)) {
             $query->with($with);
         }
-    
+
         return $query->find($id);
     }
-    
+
 
     public function create(array $data)
     {
         $record = $this->model->create($data);
         return $record->fresh();
-    }    
+    }
 
     /**
      * Update a record by ID.
@@ -133,5 +133,38 @@ abstract class BaseRepository
         }
 
         return $query;
+    }
+
+    /**
+     * Get the total number of records, optionally filtered.
+     *
+     * @param array $filters Optional filters to apply
+     * @return int
+     */
+    public function countAll(array $filters = []): int
+    {
+        if (empty($filters)) {
+            return $this->model->count();
+        }
+
+        // Apply filters using the existing buildFilteredQuery method
+        return $this->buildFilteredQuery($filters)->count();
+    }
+
+    /**
+     * Get the sum of a column, optionally filtered.
+     *
+     * @param string $column The column to sum
+     * @param array  $filters Optional filters to apply
+     * @return float|int
+     */
+    public function sumAll(string $column, array $filters = []): float|int
+    {
+        if (empty($filters)) {
+            return $this->model->sum($column);
+        }
+
+        // Apply filters using existing buildFilteredQuery
+        return $this->buildFilteredQuery($filters)->sum($column);
     }
 }
