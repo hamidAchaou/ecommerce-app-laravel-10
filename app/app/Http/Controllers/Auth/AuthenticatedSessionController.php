@@ -4,16 +4,17 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\LoginRequest;
-use App\Models\CartItem;
 use App\Providers\RouteServiceProvider;
+use App\Services\Frontend\CartService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 
 class AuthenticatedSessionController extends Controller
 {
+    public function __construct(protected CartService $cartService) {}
+
     /**
      * Display the login view.
      */
@@ -32,11 +33,16 @@ class AuthenticatedSessionController extends Controller
 
         $user = Auth::user();
 
-        $request->session()->regenerate();
+        // Merge session cart into user's cart after login
+        $this->cartService->mergeSessionToUser();
+
+        // Redirect based on role
         if ($user->hasRole('admin')) {
             return redirect()->route('admin.dashboard');
         }
-        return redirect()->intended(RouteServiceProvider::HOME);
+
+        // Redirect to intended page (e.g., the product page where user clicked "add to cart")
+        return redirect()->intended(url()->previous());
     }
 
     /**
@@ -47,21 +53,8 @@ class AuthenticatedSessionController extends Controller
         Auth::guard('web')->logout();
 
         $request->session()->invalidate();
-
         $request->session()->regenerateToken();
 
         return redirect('/');
-    }
-
-    protected function authenticated(Request $request, $user)
-    {
-        $sessionCart = session()->get('cart', []);
-        foreach ($sessionCart as $productId => $quantity) {
-            CartItem::updateOrCreate(
-                ['user_id' => $user->id, 'product_id' => $productId],
-                ['quantity' => DB::raw("quantity + $quantity")]
-            );
-        }
-        session()->forget('cart');
     }
 }
