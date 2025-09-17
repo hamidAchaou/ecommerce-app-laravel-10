@@ -1,4 +1,5 @@
 <?php
+
 namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
@@ -36,26 +37,14 @@ class RolesAndPermissionsSeeder extends Seeder
 
         // Define roles and assign permissions
         $roles = [
-            'admin' => Permission::all(),
-            'seller' => [
-                'view dashboard',
-                'manage products',
-                'manage orders',
-            ],
-            'customer' => [
-                'place orders',
-                'view products',
-            ],
+            'admin' => Permission::all()->pluck('name')->toArray(), // all permissions
+            'seller' => ['view dashboard', 'manage products', 'manage orders'],
+            'customer' => ['place orders', 'view products'],
         ];
 
         foreach ($roles as $roleName => $perms) {
             $role = Role::firstOrCreate(['name' => $roleName]);
-
-            if (is_array($perms)) {
-                $role->syncPermissions($perms);
-            } else {
-                $role->syncPermissions($perms->pluck('name'));
-            }
+            $role->syncPermissions($perms);
         }
     }
 }
