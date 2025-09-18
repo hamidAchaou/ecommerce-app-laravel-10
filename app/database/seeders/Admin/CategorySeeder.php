@@ -13,19 +13,34 @@ class CategorySeeder extends Seeder
         $basePath = 'assets/images/categories/';
 
         $defaultImages = [
-            'Traditional Industry in Morocco' => $basePath . 'Traditional Industry in Morocco.png',
-            'Textiles & Weaving'              => $basePath . 'Textiles & Weaving.png',
-            'Leatherwork'                     => $basePath . 'Leatherwork.png',
-            'Woodwork'                        => $basePath . 'Woodwork.png',
-            'Metalwork'                       => $basePath . 'Metalwork.png',
-            'Pottery & Ceramics'              => $basePath . 'Pottery & Ceramics.png',
-            'Zellige & Plaster'               => $basePath . 'Zellige & Plaster.png',
-            'Jewelry & Accessories'           => $basePath . 'Jewelry & Accessories.png',
-            'Traditional Clothing'            => $basePath . 'Traditional Clothing.png',
-            'Basketry'                        => $basePath . 'Basketry.png',
-            'Musical Instruments'             => $basePath . 'Musical Instruments.png',
-            'Tadelakt'                        => $basePath . 'Tadelakt.png',
+            'Traditional Industry in Morocco' => $basePath . 'Traditional Industry.webp',
+            'Textiles & Weaving'              => $basePath . 'Textiles-Weaving.webp',
+            'Leatherwork'                     => $basePath . 'Leatherwork-morocco.webp',
+            'Woodwork'                        => $basePath . 'Woodwork-morocco.webp',
+            'Metalwork'                       => $basePath . 'Metalwork-morocco.webp',
+            'Pottery & Ceramics'              => $basePath . 'Pottery & Ceramics-morocco.webp',
+            'Zellige & Plaster'               => $basePath . 'Zellige & Plaster.webp',
+            'Jewelry & Accessories'           => $basePath . 'Jewelry & Accessories.webp',
+            'Traditional Clothing'            => $basePath . 'Traditional Clothing.webp',
+            'Basketry'                        => $basePath . 'Basketry.webp',
+            'Musical Instruments'             => $basePath . 'Musical Instruments.webp',
+            'Tadelakt'                        => $basePath . 'Tadelakt.webp',
         ];
+
+        // $defaultImages = [
+        //     'Traditional Industry in Morocco' => $basePath . 'Traditional Industry in Morocco.png',
+        //     'Textiles & Weaving'              => $basePath . 'Textiles & Weaving.png',
+        //     'Leatherwork'                     => $basePath . 'Leatherwork.png',
+        //     'Woodwork'                        => $basePath . 'Woodwork.png',
+        //     'Metalwork'                       => $basePath . 'Metalwork.png',
+        //     'Pottery & Ceramics'              => $basePath . 'Pottery & Ceramics.png',
+        //     'Zellige & Plaster'               => $basePath . 'Zellige & Plaster.png',
+        //     'Jewelry & Accessories'           => $basePath . 'Jewelry & Accessories.png',
+        //     'Traditional Clothing'            => $basePath . 'Traditional Clothing.png',
+        //     'Basketry'                        => $basePath . 'Basketry.png',
+        //     'Musical Instruments'             => $basePath . 'Musical Instruments.png',
+        //     'Tadelakt'                        => $basePath . 'Tadelakt.png',
+        // ];
 
         $descriptions = [
             'Traditional Industry in Morocco' => 'Moroccan craftsmanship is a reflection of centuries of heritage, blending Amazigh, Arab, and Andalusian traditions in artisanal work across the country.',

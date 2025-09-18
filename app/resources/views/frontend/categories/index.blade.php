@@ -17,7 +17,7 @@
                 and woodwork.
             </p>
         </div>
-        <div class="absolute inset-0 opacity-10 bg-[url('assets/images/pattern-morocco.webp')] bg-repeat"></div>
+        <div class="absolute inset-0 opacity-10 bg-[url('/assets/images/pattern-morocco.webp')] bg-repeat"></div>
     </section>
 
     {{-- Categories Section --}}
@@ -25,6 +25,7 @@
         <div class="max-w-7xl mx-auto px-6">
             {{-- Categories --}}
             <div class="space-y-16" id="categoriesWrapper">
+                {{-- @dd($categories) --}}
                 @foreach ($categories as $index => $category)
                     <div class="category-item flex flex-col {{ $index % 2 == 0 ? 'lg:flex-row' : 'lg:flex-row-reverse' }} lg:items-center gap-8"
                         data-name="{{ strtolower($category->name) }} {{ strtolower($category->description) }}">

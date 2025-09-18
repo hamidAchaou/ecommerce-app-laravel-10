@@ -71,5 +71,5 @@
     </div>
 
     {{-- Decorative Pattern --}}
-    <div class="absolute inset-0 opacity-5 bg-[url('assets/images/pattern-morocco.webp')] bg-repeat pointer-events-none"></div>
+    <div class="absolute inset-0 opacity-5 bg-[url('/assets/images/pattern-morocco.webp')] bg-repeat pointer-events-none"></div>
 </footer>
